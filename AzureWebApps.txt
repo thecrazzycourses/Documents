@@ -1,0 +1,166 @@
+Azure App Services:
+
+-------------------------------------------
+
+Add Plugin:
+<plugin> 
+        <groupId>com.microsoft.azure</groupId>  
+        <artifactId>azure-webapp-maven-plugin</artifactId>  
+        <version>1.7.0</version> 
+</plugin>
+
+Create Package:
+mvn clean install
+
+Create Config:
+mvn azure-webapp:config
+
+Deploy:
+mvn azure-webapp:deploy
+
+-------------------------------------------
+
+Logs:
+
+It seems you need to activate the log stream first from azure portal: App Service Log under WebApp : Application Logging FileSystem and Retention Period 1 Day
+
+az webapp log tail --name hello-world-rest-api-thecrazzyrahul --resource-group hello-world-rest-api-rg
+az webapp log tail --name todo-web-application-h2-thecrazzyrahul --resource-group todo-web-application-h2-rg
+az webapp log tail --name todo-web-application-mysql-thecrazzyrahul --resource-group todo-web-application-mysql-rg
+
+-------------------------------------------
+
+MySQL on Docker:
+Make Sure your local mysql server is not runing, stop the mysql service first as it will use the port 3306
+docker run --detach --env MYSQL_ROOT_PASSWORD=rootpwd --env MYSQL_USER=username --env MYSQL_PASSWORD=password --env MYSQL_DATABASE=trxdevdb --name mysql --publish 3306:3306 mysql:5.7
+
+You can connect to MySQL IDE or MySQL Command Line Client ( provide password : dummypassword)
+
+Azure MySQL DB Service:
+admin user : todosuser
+password   : $Dec2020
+
+-------------------------------------------
+
+Setup Env Configuration in Azure WebApp: Configuration
+
+RDS_HOSTNAME : todo-web-app.mysql.database.azure.com
+RDS_PORT : 3306
+RDS_DB_NAME : todos
+RDS_USERNAME : todosuser@todo-web-app
+RDS_PASSWORD : $Dec2020
+
+
+RDS -> Remote DataSource
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://${RDS_HOSTNAME:localhost}:${RDS_PORT:3306}/${RDS_DB_NAME:trxdev}?serverTimezone=UTC
+spring.datasource.username=${RDS_USERNAME:username}
+spring.datasource.password=${RDS_PASSWORD:password}
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL57Dialect
+
+Now we have to restart the application:
+
+Either restart from Azure WebApp Portal
+or
+az webapp restart --name todo-web-application-mysql-thecrazzyrahul --resource-group todo-web-application-mysql-rg
+
+MySQL Connect from Azure CLI :
+mysql --host todo-web-app.mysql.database.azure.com --user todosuser@todo-web-app -p
+
+Local Machine : Not Working
+C:\Program Files\MySQL\MySQL Server 8.0\bin>mysql -u todosuser@todo-web-app -h todo-web-app.mysql.database.azure.com todos -p 
+
+show databases;
+create database todos;
+use todos;
+-------------------------------------------
+
+Add DB Extension to Azure CLI : If we need to create DB from Azure CLI
+
+az extension add --name db-up
+
+az mysql up -g resource-group-name -s hostname -d database-name -u username -p password
+az mysql up -g database-rg -s todo-web-app-command-line -d todos -u todosuser -p $Dec2020
+
+az mysql server create — name <mysql_server_name> — resource-group myResourceGroup — location “North Europe” — admin-user <admin_user> — admin-password <admin_password>
+
+-------------------------------------------
+
+Deploy React App :
+
+az webapp up --name frontend-full-stack-thecrazzyrahul --plan ServicePlan1cfd9bcd-4c2c-420c --resource-group frontend-app-rg --location westeurope --html
+
+-------------------------------------------
+
+Docker Maven Plugin :
+
+<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>dockerfile-maven-plugin</artifactId>
+				<version>1.4.10</version>
+				<executions>
+					<execution>
+						<id>default</id>
+						<goals>
+							<goal>build</goal>
+							<!-- <goal>push</goal> --> 
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<repository>thecrazzyrahul/${project.artifactId}</repository>
+					<tag>${project.version}</tag>
+					<skipDockerInfo>true</skipDockerInfo>
+				</configuration>
+</plugin>
+
+
+This will create docker image : mvn clean package
+	Run this with cmd admin and check docker desktop should be running:
+	Make sure Docker Desktop : Expose Deamon on tcp://localhost:2375 without TLS is checked
+
+Push Imahe to Repo :
+docker push thecrazzyrahul/todo-rest-api-h2:1.0.0.RELEASE 
+
+-------------------------------------------
+Create Resource Group :
+az group create --name container-resource-group --location westeurope
+
+Create AppService Plan :
+az appservice plan create --name container-service-plan --resource-group container-resource-group --sku P1v2 --is-linux
+
+Create WebApp:
+This will download image, create container, deploy image to container
+az webapp create --name todo-rest-api-h2-thecrazzyrahul --resource-group container-resource-group --plan container-service-plan --deployment-container-image-name thecrazzyrahul/todo-rest-api-h2:1.0.0.RELEASE 
+
+Webhook URL :
+https://$todo-rest-api-h2-thecrazzyrahul:stc6YrvruwHp4Khv5LcCdpYKch9hLo6WWvEou19ea4rcA2bMRnZAkXDfyoJd@todo-rest-api-h2-thecrazzyrahul.scm.azurewebsites.net/docker/hook
+
+https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ci-cd
+https://docs.docker.com/docker-hub/webhooks/
+
+
+-------------------------------------------
+
+Deploy API & MYSQL to Container:
+
+az group create --name docker-compose-resource-group --location westeurope
+az appservice plan create --name dcoker-compose-service-plan --resource-group docker-compose-resource-group --sku P1v2 --is-linux
+az webapp create --name todo-rest-api-mysql-thecrazzyrahul --resource-group docker-compose-resource-group --plan dcoker-compose-service-plan --multicontainer-config-type compose --multicontainer-config-file docker-compose.yaml 
+
+az group delete --name docker-compose-resource-group --yes
+
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------
+-------------------------------------------

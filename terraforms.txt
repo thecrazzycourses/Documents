@@ -1,0 +1,279 @@
+Infrastructure As Code:
+
+Terraforms : For Provisioning Infrastructure like create Servers ex VM
+
+Ansible, Chef, Puppet: Are Configuration Management Tool to Install and Configure Softwares on Server ex Tomcat
+
+Jenkins, Azure Devops: Deploy app on Server ex Rest Api
+
+--------------------------
+
+Provider is used to talk to cloud for ex amazon, azure, gcloud
+
+provider for amazon is aws
+
+--------------------------
+
+Create IAM for AWS
+create new user for example command_line_user, provide admin access and create
+
+User
+command_line_user
+
+Access key ID
+AKIARKHM764PHGJOWBC5
+
+Secret access key
+aSTZ7sgSAFJgM4wa7H66Kbhl9d1nJi8dxj6t8gAr
+
+export AWS_ACCESS_KEY_ID=AKIARKHM764PHGJOWBC5
+export AWS_SECRET_ACCESS_KEY_ID=aSTZ7sgSAFJgM4wa7H66Kbhl9d1nJi8dxj6t8gAr
+
+Create S3 Bucket: Manually from UI
+Its a strorage account for aws where we can store files for high avialablity from anywhere
+
+Bucket Name:
+bucket-in28min-123456
+--------------------------
+
+Create S3 Bucket using terraform:
+
+we need to create a resource
+
+resource "provide-name_resource-name" "this-name-is-specific-to-terraform" {
+	bucket = "bucket-name"
+}
+
+terraform init : This will download provider dependency
+terraform plan : This command will show what it going to craete
+terraform apply : This command will show what it going to create and ask to create, enter yes to create
+
+--------------------------
+
+State:
+
+Desired State: What is there in main.tfplan
+Known State: Result of previous execution which is stored in terraform.tfstate
+Actual State: What is actually present in AWS
+
+Lets change name for S3 Bucket from 01 to 02, we will see terraform will update the name by deleting the old bucket and create new bucket for us in background
+
+
+--------------------------
+
+Terraform Console:
+
+terraform console : This will take us to terraform console
+
+Run :
+provider_resource.resource-name : This will show details for S3 Bucket we created
+aws_s3_bucket.my_s3_bucket : This will show details for S3 Bucket we created
+
+aws_s3_bucket.my_s3_bucket.versioning : This will show versioning details for S3 Bucket we created
+aws_s3_bucket.my_s3_bucket.versioning.enabled : This will show versioning enabled details for S3 Bucket we created
+
+terraform apply --refresh=false : This will disable refresh from AWS cloud
+
+terraform plan -out name.tfplan : This will create a plan files
+terraform apply "name.tfplan"
+
+--------------------------
+
+S3 Bucket : If we change name, terraform identify that we can't change name and it deletes old 1 and create new 1
+IAM : If we change name, terraform identify that we can change name and upadtes the name
+
+terraform apply --target=aws_iam_user.my_iam_user : This will only update the resource which is mentioned and leave other
+
+terraform state has name & id. Name refer to terraform resource name and id refer to cloud for that resource
+terraform will match the resource with name to what we have on cloud with the help of id
+
+--------------------------
+
+Terraform State:
+
+terraform state conatins raw credentails, so we should not store them in git. Add these to .gitignore
+we will store these in s3 bucket
+
+terraform destroy : This will destory all infrasture resources
+terraform validate : This will validate tf file
+terraform fmt : This will format tf file
+terraform show : This will show what is there in the state
+
+--------------------------
+
+Creating VM in AWS :
+
+Search EC2 and create
+
+VPC is virtual private cloud which has private and public subnets ( private which can't be access from outside and public which can access from outside )
+
+Security Group we can control traffic to VPC Subnet like only Http or Https also we can allow Ip Address to access over Http or Ip Address in a pirticular Range as a Firewall Rule
+
+# Create EC2 VM Http Server -> Security Group
+# Security Group -> TCP 80, SSH 22, CIDR (Range of IP Address) ["0.0.0.0/0"]
+# This CIDR is for any system from anywhere
+
+# Which VPC this security group should be part of
+  vpc_id = "vpc-67c7d41d"
+  
+# From where do we allow traffic. Inbound Traffic
+  # For HTTP
+  ingress {
+    from_port   = 80            # From Port 80
+    to_port     = 80            # To Port 80
+    protocol    = "tcp"         # Only TCP Protocol
+    cidr_blocks = ["0.0.0.0/0"] # All IP Address
+  }
+
+# To what we can talk to from this Http Server. Outbound Traffic
+  egress {
+    from_port   = 0  # From Anywhere
+    to_port     = 0  # To Anywhere
+    protocol    = -1 # All Protocol
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+In Terraform Doc if you see like : name - (Optional - Terraform will provide if you miss, Force New Resource - This mean it will going to create a new resource if you change the name)
+
+--------------------------
+
+Create Key Pair :
+
+Create Key Pair from AWS Cloud - EC2 Key Pair Left section - create key pair - name and select .pem
+
+--------------------------
+
+Work Space:
+
+Show Workspace:
+terraform workspace show : This will show current workspace
+
+Create Workspace:
+terraform workspace new dev-env
+terraform workspace new test-env
+terraform workspace new stage-env
+terraform workspace new prod-env
+
+Select a Workspace:
+terraform workspace select prod-env
+
+
+List a Workspace:
+terraform workspace select prod-env
+
+--------------------------
+
+Azure Terraform:
+
+az login
+
+You have logged in. Now let us find all the subscriptions to which you have access...
+[
+  {
+    "cloudName": "AzureCloud",
+    "homeTenantId": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675",
+    "id": "c7681354-8704-4921-8c04-7052ca16ed4c",
+    "isDefault": true,
+    "managedByTenants": [],
+    "name": "Free Trial",
+    "state": "Enabled",
+    "tenantId": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675",
+    "user": {
+      "name": "rahul9582816650@outlook.com",
+      "type": "user"
+    }
+  }
+]
+
+Now we will create Service Account :
+
+az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/subscription-id"
+
+az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/c7681354-8704-4921-8c04-7052ca16ed4c"
+
+Creating a role assignment under the scope of "/subscriptions/c7681354-8704-4921-8c04-7052ca16ed4c"
+{
+  "appId": "0902560f-57bd-4bf1-8023-bd76f722178f",
+  "displayName": "azure-cli-2020-05-21-15-37-01",
+  "name": "http://azure-cli-2020-05-21-15-37-01",
+  "password": "ebd20fac-0903-4266-a47a-82b16d1506b2",
+  "tenant": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675"
+}
+
+Generate SSH Key :
+
+ssh-keygen -m Certificate-Format -t Encrypting-Algo -b Strength-Of-Encrypting-Algo
+
+ssh-keygen -m PEM -t rsa -b 4096
+
+This will create azure_rsa and azure_rsa.pub
+
+--------------------------
+
+Configur Pipeline in Azure Devops:
+
+Make connection from Azure Devops to Azure Cloud: Go to setting in Azure Devops and New Service Connection, select Azure Resource Manager ( Manually Created )
+
+We should use seprate Resource Group with Storage for Terraform State
+Storage Account should be unique accros azure, name should not contain space or hypen
+
+Create AKS using Terraform:
+
+Connect using Azure CLI:
+
+az aks get-credentials --name aks-name --resource-group resource-group-name
+
+az aks get-credentials --name k8stest_dev --resource-group kubernetes_dev
+
+az login --service-principal -u 0902560f-57bd-4bf1-8023-bd76f722178f -p ebd20fac-0903-4266-a47a-82b16d1506b2 --tenant 4abd0f95-7bbc-45ae-9715-02dbb9cb9675
+az aks enable-addons --addons kube-dashboard --resource-group=kubernetes_dev --name=k8stest_dev
+az aks browse --resource-group=kubernetes_dev --name=k8stest_dev
+
+--------------------------
+
+
+
+--------------------------
+--------------------------
+--------------------------
+--------------------------
+--------------------------
+--------------------------
+--------------------------
+--------------------------
+--------------------------
+
+terraform --version
+terraform version
+terraform init
+export AWS_ACCESS_KEY_ID=*******
+export AWS_SECRET_ACCESS_KEY=*********
+terraform plan
+terraform console
+terraform apply -refresh=false
+terraform plan -out iam.tfplan
+terraform apply "iam.tfplan"
+terraform apply -target=aws_iam_user.my_iam_user
+terraform destroy
+terraform validate
+terraform fmt
+terraform show
+export TF_VAR_iam_user_name_prefix = FROM_ENV_VARIABLE_IAM_PREFIX
+export TF_VAR_iam_user_name_prefix=FROM_ENV_VARIABLE_IAM_PREFIX
+terraform plan -refresh=false -var="iam_user_name_prefix=VALUE_FROM_COMMAND_LINE"
+terraform apply -target=aws_default_vpc.default
+terraform apply -target=data.aws_subnet_ids.default_subnets
+terraform apply -target=data.aws_ami_ids.aws_linux_2_latest_ids
+terraform apply -target=data.aws_ami.aws_linux_2_latest
+terraform workspace show
+terraform workspace new prod-env
+terraform workspace select default
+terraform workspace list
+terraform workspace select prod-env
+
+
+
+
+
+
+--------------------------

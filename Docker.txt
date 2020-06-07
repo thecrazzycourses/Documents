@@ -1,0 +1,350 @@
+Delete Docker Containers:
+-------------------------
+docker ps -q -a
+docker ps -q -a | docker rm --force 5738447de445 f2896de8d874 b2eb6e752870 119af71fd60a bd9d41298b98 f85fac9dbb96 89683b315494 8b8d0f3ead44 ee4d09e50abc
+
+Delete Docker Images:
+---------------------
+docker images 
+docker rmi image-id
+
+Docker Build:
+-------------
+docker build -t spring/dockerfile-test .
+
+Docker Run:
+-----------
+docker run -p 8080:8080 spring/dockerfile-test
+
+Dockerfile Spring:
+------------------
+*************************This depend on target/*.jar which by deafult not there we need to run mvn package first ********************
+#FROM
+FROM adoptopenjdk/openjdk11:ubi
+
+# WORK DIR
+RUN mkdir /opt/app
+
+# COPY
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} /opt/app/app.jar
+
+# LABEL
+ARG VERSION_NBR="1.0.0"
+ENV TRX_VERSION=$VERSION_NBR
+LABEL TRX_APP="API"
+LABEL TRX_VERSION=$VERSION_NBR
+
+# RUN
+ENTRYPOINT ["java","-jar","/opt/app/app.jar"]
+
+or 
+
+*************************This takes too much time to download the dependencies********************
+# Build a JAR File
+FROM maven:3.6.3-adoptopenjdk-11 AS stage1
+WORKDIR /home/app
+COPY . /home/app/
+RUN mvn -f /home/app/pom.xml clean package
+
+# Create an Image
+FROM adoptopenjdk/openjdk11:ubi
+EXPOSE 8080
+COPY --from=stage1 /home/app/target/api.jar api.jar
+ENTRYPOINT ["sh", "-c", "java -jar /api.jar"]
+
+Docker Azure Login :
+---------------------
+Login to your container registry
+docker login acrdevproject.azurecr.io
+
+Push to your registry
+docker tag hello-world acrdevproject.azurecr.io/hello-world
+docker push acrdevproject.azurecr.io/hello-world
+
+Pull from your registry
+docker pull acrdevproject.azurecr.io/hello-world
+
+Docker in Min:
+-------------
+Login to Docker Hub Public Registry : docker login
+
+Dcoker Build : docker build -t thecrazzyrahul/api:1.0.0 . (Run Maven Package which will create .jar in target dir which will be used by docker if required)
+
+Docker Run : docker run -p 8080:8080 thecrazzyrahul/api:1.0.0 (-p expose port, -p host-port:container-port host port is external and container port is docker internal)
+-p is --publish which work as bridge between docker and external world
+
+Push Docker Image : docker push thecrazzyrahul/api:1.0.0 ( This is Repository Name thecrazzyrahul/api , Tag : 1.0.0, Image : thecrazzyrahul/api:1.0.0 )
+
+Docker Pull Image : docker pull thecrazzyrahul/api:1.0.0
+
+-------------
+
+Running Container in Detached Mode : docker run -d -p 8080:8080 thecrazzyrahul/api:1.0.0
+Check Logs :
+docker ps (Find Container ID)
+docker logs container-id
+
+Follow Logs:
+docker logs -f container-id (This will tie logs to the terminal)
+
+-------------
+
+List Images and Containers:
+docker images
+docker container ls (This will show running conatiners)
+docker container ls -a (This will show all conatiners, running and stopped)
+
+-------------
+
+Stop Container
+docker stop container-id
+
+-------------
+
+Docker Architecture:
+Docker Client send request to Docker Deamon/Server which manages Containers (manage conatiners), Images (manage images), Registry (Pulling and Pushing Images)
+
+-------------
+
+Search Image in Docker Hub:
+docker search mysql
+
+NAME                              DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED
+mysql                             MySQL is a widely used, open-source relation…   9500                [OK]
+mariadb                           MariaDB is a community-developed fork of MyS…   3444                [OK]
+mysql/mysql-server                Optimized MySQL Server Docker images. Create…   696                                     [OK]
+
+Always use official images only
+
+-------------
+
+History of Image: ( OS on which JDK install on which we build our java app)
+docker image history image-name
+
+docker image history thecrazzyrahul/api:1.0.0
+
+e71f10177ac5        2 minutes ago       /bin/sh -c #(nop)  ENTRYPOINT ["sh" "-c" "ja…   0B
+deeb5b4e6d20        2 minutes ago       /bin/sh -c #(nop) COPY file:092707ea55aa3606…   21.1MB
+423e03103e77        18 minutes ago      /bin/sh -c #(nop)  EXPOSE 8080                  0B
+886c7ab597d2        8 days ago          /bin/sh -c #(nop)  CMD ["jshell"]               0B
+<missing>           8 days ago          /bin/sh -c #(nop)  ENV JAVA_HOME=/opt/java/o…   0B
+<missing>           8 days ago          /bin/sh -c set -eux;     ARCH="$(uname -m)";…   322MB
+<missing>           8 days ago          /bin/sh -c #(nop)  ENV JAVA_VERSION=jdk-11.0…   0B
+<missing>           8 days ago          /bin/sh -c #(nop)  LABEL name=AdoptOpenJDK J…   0B
+<missing>           8 days ago          /bin/sh -c dnf install -y openssl curl ca-ce…   39.5MB
+<missing>           8 days ago          /bin/sh -c #(nop)  ENV LANG=en_US.UTF-8 LANG…   0B
+
+-------------
+
+Docker Image & Container Detail:
+docker image inspect image-id
+docker conatiner inspect image-id
+
+docker image inspect a277cab6f053
+
+RepoTags": [
+            "thecrazzyrahul/api:1.0.0"
+        ],
++ other info		
+		
+-------------
+
+Remove Image:
+docker remove image-name
+
+docker remove mysql
+
+Sometimes Container reffer the images & we can delete those images.
+for such images we have to stop the conatiner first if running then remove the conatiner
+
+Remove Container:
+docker conatiner rm container-id
+
+We can remove a running container, we need to stop it first:
+docker stop container-id
+docker conatiner rm container-id
+
+-------------
+
+Run a Container with Image:
+docker run -p 8080:8080 thecrazzyrahul/api:1.0.0
+or
+docker container run -p 8080:8080 thecrazzyrahul/api:1.0.0
+
+Both are same, first 1 is shorthand
+
+-------------
+
+Docker Container Pause and Unpause, Stop and Kill:
+
+docker container pause conatiner-id
+docker container unpause conatiner-id
+
+Pause will pause the running conatiner and it will stop serving.
+Unpause will resume it again
+
+Stop Container:
+docker container stop conatiner-id
+
+Kill Container:
+docker container kill conatiner-id
+
+Stop command will give time to free up the resource like JMX or Executor Service used by Java App. Graceful shutdown. SIG TERMINATE at OS level
+Kill command will immediately stop the container. No time for resource to free up. SIG KILL at OS level
+
+-------------
+
+Docker System Wide Commands:
+
+docker system df      : Show docker disk usage
+docker system events  : Get real time events from the server ( Run this in 1 terminal and perform action in other terminal, you will see the events)
+docker system info    : Display system-wide information
+docker system prune   : Remove unused data
+
+
+docker system prune
+WARNING! This will remove:
+  - all stopped containers
+  - all networks not used by at least one container
+  - all dangling images
+  - all dangling build cache
+
+Are you sure you want to continue? [y/N]
+
+-------------
+
+Dcoker Stats:
+
+docker stats conatiner-id
+
+CONTAINER ID        NAME                CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O           PIDS
+cda2e9015deb        sharp_bhaskara      0.15%               169.9MiB / 1.934GiB   8.58%               968B / 0B           0B / 0B             34
+
+if you notice Memory is 2 GB, which we can limit by :
+
+docker container run -d -m 512m -p 8080:8080 thecrazzyrahul/api:1.0.0
+
+CONTAINER ID        NAME                CPU %               MEM USAGE / LIMIT   MEM %               NET I/O             BLOCK I/O           PIDS
+b0ae2421627a        charming_wu         0.27%               112.2MiB / 512MiB   21.91%              828B / 0B           0B / 0B             28
+
+control cpu usage, bydefault it uses 100,000.
+
+docker container run -d -m 512m --cpu-quota=50000 -p 8080:8080 thecrazzyrahul/api:1.0.0
+
+we given half of 100,000, at the application startup we will see high CPU Usage but after that it will come down
+-------------
+
+Docker Push:
+
+docker login
+docker push image-name
+
+docker push thecrazzyrahul/api:1.0.0
+
+-------------
+
+Dockerfile CMD Vs ENTRYPOINT
+
+With CMD at run time we can pass any other argument which it will take and run.
+With ENTRYPOINT we can pass any other argument but it wont run. The one with ENTRYPOINT will only run
+
+Example:
+
+CMD node index.js
+ENTRYPOINT ["java","-jar","/opt/app/app.jar"]
+
+We can use CMD where at runtime we need to pass some otherfile from index.js
+When we dont want to change and make it static then use ENTRYPOINT
+
+We can even override the ENTRYPOINT for that we have to run like:
+docker run -d -m 512m -p 8080:8080 --entrypoint thecrazzyrahul/api:1.0.0
+
+-------------
+
+Microservices Architecture:
+
+Microservices 1 (Python) --> Microservices 2 (NodeJS) --> Microservices 3 ( Java)
+
+Will be using :
+
+Currency Conversion Service will call ----> Currency Exchange Service
+
+Currency Exchange Service (1 USD = 60 INR, 1 EUR = 70 INR, 1 AUD = 50 INR )
+
+Currency Conversion Service ( 10 USD = 600 INR )
+
+Currency Exchange Service
+docker run -p 8000:8000 --name=currency-exchange in28min/currency-exchange:0.0.1-RELEASE
+
+Currency Conversion Service
+docker run -p 8100:8100 --env CURRENCY_EXCHANGE_SERVICE_HOST=http://currency-exchange --name=currency-conversion --link currency-exchange in28min/currency-conversion:0.0.1-RELEASE
+
+We create a bridge between 2 Microservices using "--link currency-exchange" & "--env CURRENCY_EXCHANGE_SERVICE_HOST=http://currency-exchange"
+
+OR
+
+Create a Custom Network: Now both conatiner are part of same network and can use name to talk to each other like currency-exchange
+
+docker network create currency-network
+
+docker run -p 8000:8000 --name=currency-exchange --network=currency-network in28min/currency-exchange:0.0.1-RELEASE
+
+docker run -p 8100:8100 --env CURRENCY_EXCHANGE_SERVICE_HOST=http://currency-exchange --name=currency-conversion --link currency-exchange --network=currency-network in28min/currency-conversion:0.0.1-RELEASE
+
+
+-------------
+
+User Docker Compose : when we have multiple container which need to talk to each other
+
+docker-compose up	  : This will run the conatiner
+docker-compose down   : This will shutdown the conatiner
+docker-compose config : This will validate the docker-compose.yml file
+docker-compose ps 	  : This will give running container
+
+Similar to docker commands ps, kill, stop, pause, unpause etc 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

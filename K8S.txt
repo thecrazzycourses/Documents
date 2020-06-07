@@ -1,0 +1,595 @@
+Kubernetes :
+------------
+
+
+
+Kubernetes in Min:
+-----------------
+
+K8S Architecture:
+Cluster has Master Nodes (Manage Cluster) & Worker Nodes ( Run the Application )
+
+Azure : AKS azure k8s service
+Amazon : EKS elastic k8s service
+GCloud : GKE google k8s engine
+
+------------
+
+Create Service Principal:
+az ad sp create-for-rbac -n "az-sp-playbook" --role="Contributor" --scopes="/subscriptions/c7681354-8704-4921-8c04-7052ca16ed4c"
+
+{
+  "appId": "2182ee41-2083-4ab1-a03c-11817245d0ec",
+  "displayName": "az-sp-playbook",
+  "name": "http://az-sp-playbook",
+  "password": "16acffe5-c0af-494c-92d9-1e06e867dd27",
+  "tenant": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675"
+}
+
+https://docs.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-kubernetes
+
+CMD as Admin / Powershell As Admin
+
+Azure Login:
+az login --service-principal -u client-id -p client-secret --tenant tenant-id
+az login --service-principal -u 2182ee41-2083-4ab1-a03c-11817245d0ec -p 16acffe5-c0af-494c-92d9-1e06e867dd27 --tenant 4abd0f95-7bbc-45ae-9715-02dbb9cb9675
+
+Set Subscription:
+az account set -s c7681354-8704-4921-8c04-7052ca16ed4c
+
+Create Resource Group:
+az group create --name=wingtiptoys-kubernetes --location=eastus
+
+Create ACR:
+az acr create --resource-group wingtiptoys-kubernetes --location eastus --name wingtiptoysregistryacr --sku Basic
+
+Set Deafult ACR:
+az configure --defaults acr=wingtiptoysregistryacr
+
+Created AKS Using UI : As facing issue with below command
+az aks create --resource-group=wingtiptoys-kubernetes --name=wingtiptoys-akscluster --attach-acr wingtiptoysregistryacr --dns-name-prefix=wingtiptoys-kubernetes --generate-ssh-keys --service-principal 2182ee41-2083-4ab1-a03c-11817245d0ec --client-secret 16acffe5-c0af-494c-92d9-1e06e867dd27
+
+%%%%%%%%%%%%%%%%%%%%%%
+Deploy Using Command
+
+az aks install-cli
+
+Login AKS
+az aks get-credentials --resource-group=wingtiptoys-kubernetes --name=wingtiptoys-akscluster
+
+Create Deployment
+kubectl run gs-spring-boot-docker --image=wingtiptoysregistryacr.azurecr.io/gs-spring-boot-docker:latest
+
+Expose Service
+kubectl expose deployment gs-spring-boot-docker --type=LoadBalancer --port=80 --target-port=8080
+
+This will give LoadBalancer IP:
+kubectl get services -o jsonpath={.items[*].status.loadBalancer.ingress[0].ip} --namespace=default
+
+%%%%%%%%%%%%%%%%%%%%%%
+Deploy Using UI
+Run on Powershell Admin :
+kubectl create clusterrolebinding kubernetes-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
+az aks browse --resource-group=wingtiptoys-kubernetes --name=wingtiptoys-akscluster
+
+if face issue delete: 
+kubectl delete clusterrolebinding kubernetes-dashboard
+kubectl create clusterrolebinding kubernetes-dashboard --clusterrole=cluster-admin --serviceaccount=kube-system:kubernetes-dashboard
+az aks browse --resource-group=wingtiptoys-kubernetes --name=wingtiptoys-akscluster
+
+Port usage : netstat -ano|findstr "PID :8001"
+Kill that PID : taskkill /pid 19076 /f
+
+Click on Create Button
+Create An App Section
+App Name : api
+container image : wingtiptoysregistryacr.azurecr.io/api:1.0.0
+no of pods : 1
+service : external 
+port 80 
+target port : 8080
+protocol : tcp
+
+------------
+
+Docker Registry Login : We can login to ACR using below command
+ACR portal go to Access Key , enable Admin User , Use Useranme (acrdevplaybook) and Password (hXLTQSt0018p=zDV4ouWYnq5SLz2dyj0)
+docker login acrdevplaybook.azurecr.io :  This will ask for Useranme & Password
+
+------------
+
+Create Deployment:
+kubectl create deployment hello-world-rest-api --image=in28min/hello-world-rest-api:0.0.1.RELEASE
+
+Expose Service:
+kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=80 --target-port=8080
+
+Events:
+kubectl get events
+
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+------------
+
+Pods:
+kubectl get pods
+kubectl get pod
+
+Cluster has multiple Nodes, Each Node has 1 or more PODS, Container are deployed under PODS
+
+kubectl get pods -o wide
+
+NAME                                    READY   STATUS    RESTARTS   AGE   IP           NODE                                NOMINATED NODE   READINESS GATES
+hello-world-rest-api-6f58bf7f76-56v24   1/1     Running   0          26m   10.244.1.7   aks-agentpool-19202552-vmss000000   <none>           <none>
+
+Each POD has a unique IP Address
+Ready shows running-pods/total-pods
+Containers inside POD share resources
+Within a POD, Container can talk to each other using localhost
+
+Descibe Pod:
+kubectl get pods
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+hello-world-rest-api-6f58bf7f76-56v24   1/1     Running   0          33m
+
+kubectl describe pod hello-world-rest-api-6f58bf7f76-56v24
+
+Pod has Labels:
+which are used to assocoate a pod with replicaset , service etc
+
+Delete Pod:
+
+kubectl get pods
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+hello-world-rest-api-6f58bf7f76-56v24   1/1     Running   0          45m
+
+kubectl delete pod hello-world-rest-api-6f58bf7f76-56v24
+pod "hello-world-rest-api-6f58bf7f76-56v24" deleted
+
+When we delete pod, replicaset create a new pod immediately as desired will be 1
+
+------------
+
+Namespace:
+
+Cluster has namespace like we are using deafult namespace.
+Namespace used to isolates clusters
+This is useful when we have multiple environment like dev, qa, prod
+So we can have namespace for dev, qa and prod.
+
+kubectl delete --all pods --namespace=namespace-name
+kubectl delete --all pods -n namespace-name
+kubectl delete --all deployment -n namespace-name
+kubectl delete --all -n namespace-name
+
+kubectl delete pod xxx --now
+kubectl delete pod NAME --grace-period=0 --force
+
+------------
+
+Replica Set:
+kubectl get replicasets
+kubectl get replicaset
+kubectl get rs
+
+Replica set ensure a specific no of POD are running all the time.
+
+kubectl get rs
+
+NAME                              DESIRED   CURRENT   READY   AGE
+hello-world-rest-api-6f58bf7f76   1         1         1       41m
+
+This shows desired is 1 and ready is 1
+
+get rs -o wide
+
+NAME                              DESIRED   CURRENT   READY   AGE   CONTAINERS             IMAGES                                       SELECTOR
+hello-world-rest-api-6f58bf7f76   1         1         1       43m   hello-world-rest-api   in28min/hello-world-rest-api:0.0.1.RELEASE   app=hello-world-rest-api,pod-template-hash=6f58bf7f76
+
+Scale Pods:
+kubectl scale deployment hello-world-rest-api --replicas=3
+
+This will increase the replicaset desired from 1 to 3, which in trun increases the ready state to 3
+
+kubectl delete rs rs-name
+
+------------
+
+Deployment:
+kubectl get deployment
+
+kubectl get deployment -o wide
+
+NAME                   READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS             IMAGES                                       SELECTOR
+hello-world-rest-api   3/3     3            3           99m   hello-world-rest-api   in28min/hello-world-rest-api:0.0.1.RELEASE   app=hello-world-rest-api
+
+get rs -o wide
+
+NAME                              DESIRED   CURRENT   READY   AGE   CONTAINERS             IMAGES                                       SELECTOR
+hello-world-rest-api-6f58bf7f76   1         1         1       43m   hello-world-rest-api   in28min/hello-world-rest-api:0.0.1.RELEASE   app=hello-world-rest-api,pod-template-hash=6f58bf7f76
+
+We see here the image is 0.0.1.RELEASE, what if we need to deploy next Release for ex 0.0.2.RELEASE
+
+kubectl set image deployment deployment-name conatiner-name=image-name
+
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE --record=true
+
+kubectl get rs
+
+NAME                              DESIRED   CURRENT   READY   AGE
+hello-world-rest-api-6f58bf7f76   0         0         0       123m
+hello-world-rest-api-76f86f8db5   3         3         3       8m22s
+
+Even if you set a image which does not exist, application wont go down.
+
+If you give a correct image then it will make the old deployment down and new deployment up
+
+There will be 2 deployment 1 point to 0.0.1.RELEASE & other 0.0.2.RELEASE
+After sometime old deployment will be removed and we only see new deployment
+
+Deployment has Multiple ReplicaSet, ReplicaSet has Multiple PODS running
+
+v1 - 3 & v2 - 1
+v1 - 2 & v2 - 2
+v1 - 1 & v2 - 3
+v1 - 0 & v2 - 3
+
+1 Pod at a time for scale up and scale down
+
+kubectl delete deployment deployment-name
+
+------------
+
+Service:
+kubectl get service
+kubectl get svc
+
+kubectl get svc -o wide
+
+NAME                   TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)        AGE    SELECTOR
+hello-world-rest-api   LoadBalancer   10.0.198.135   13.86.98.227   80:30452/TCP   127m   app=hello-world-rest-api
+kubernetes             ClusterIP      10.0.0.1       <none>         443/TCP        3h9m   <none>
+
+when we delete a pod, a new pod is started up by rs, with each new pod a new ip is associated with pod
+we dont want to use these pods ip
+
+Service allow our application to recive traffic on a permanent ip for lifetime, this ip can be mapped to dns which we share with our clients
+
+Expose Service:
+kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=80 --target-port=8080
+
+LoadBalancer: has frontend which point to public/static ip and backend which point to nodes in cluster
+
+ClsuterIP service type can't be access from outside world, inside cluster we can access it
+
+NodePort service type, a Port is exposed on a Node, using that we can talk to service
+
+kubectl delete svc svc-name
+
+------------
+
+Kubernetes Nodes:
+Api Server: All kubetcl commands interact with api
+Distributed DB: etcd where all config are persisted, its a distribited db
+Schedular: which schedules new pod creation , its ip etc
+Control Manager: which manages health of kubernetes cluster and worker nodes
+
+All user app runs on worker nodes
+
+Worker Node:
+Node Agent: called kubelet, monitor node and communicate back to master node, if pod goes down it report to controller manager of master node
+Nwetworking Component: helps exposing service 
+Container Runtime: docker, we can use k8s with any oci open container interface runtime spec implemetation
+PODS: multiple pod runs containers
+
+Even if Master Node goes down our app will continue to work
+
+kubectl get componentstatuses
+
+NAME                 STATUS      MESSAGE                                                                                     ERROR
+controller-manager   Unhealthy   Get http://127.0.0.1:10252/healthz: dial tcp 127.0.0.1:10252: connect: connection refused
+scheduler            Unhealthy   Get http://127.0.0.1:10251/healthz: dial tcp 127.0.0.1:10251: connect: connection refused
+etcd-0               Healthy     {"health": "true"}  
+
+------------
+
+Region & Zones
+
+Region should be nearer for low latency
+Multiple region will allow more availablity, if due to natural calamity 1 region goes down our app still be accessale from other region
+Legal Requirement, gov dont want to store there peopls info to be stored outside the country, for this we need to deploy in that region only
+
+Within a Region there are multiple zones
+zones are physically available data centers
+
+For example: India Region having 3 Zones Mumbai Delhi Banglore these are 3 data centers within india
+
+------------
+
+Rollouts:
+
+Rollout History
+kubectl rollout history deployment hello-world-rest-api
+
+deployment.extensions/hello-world-rest-api
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.3.RELEASE --record=true
+
+Rollout History
+kubectl rollout history deployment hello-world-rest-api
+
+deployment.extensions/hello-world-rest-api
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.3.RELEASE --record=true
+
+Rollout Revision
+kubectl rollout undo deployment hello-world-rest-api --to-revision=2
+kubectl rollout undo deployment hello-world-rest-api --to-revision=1
+
+------------
+
+Logs:
+
+kubectl get pods
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+hello-world-rest-api-558d7f64c8-cp9m4   1/1     Running   0          2m36s
+hello-world-rest-api-558d7f64c8-gd87g   1/1     Running   0          2m40s
+hello-world-rest-api-558d7f64c8-qw8cl   1/1     Running   0          2m38s
+
+Check Logs:
+kubetcl logs hello-world-rest-api-558d7f64c8-cp9m4
+
+To Follow Logs:
+kubetcl logs -f hello-world-rest-api-558d7f64c8-cp9m4
+
+
+------------
+
+Deployment YAML:
+
+Output :
+kubectl get deployment hello-world-rest-api -o yaml
+kubectl get svc hello-world-rest-api -o yaml
+
+Save :
+kubectl get deployment hello-world-rest-api -o yaml > deployment.yaml
+kubectl get svc hello-world-rest-api -o yaml > service.yaml
+
+Update Deployment: chnage replica and run
+kubetcl apply -f deployment.yaml
+
+Deployment, Service, ReplicaSet, POD are having same Label app=hello-world-rest-api
+
+we can delete all in 1 command:
+
+kubectl delete all -l app=hello-world-rest-api
+
+pod "hello-world-rest-api-558d7f64c8-gd87g" deleted
+pod "hello-world-rest-api-558d7f64c8-qw8cl" deleted
+service "hello-world-rest-api" deleted
+deployment.apps "hello-world-rest-api" deleted
+
+We will not going to see replica set here, as replica set are created by deployment
+
+
+------------
+
+Understanding YAML:
+
+Api Version, Kind, Metadata & Spec are common in both
+
+Deployment has selector which maps deployment to pods
+deployment selector says matchLabels where app: hello-world-rest-api and our pod has labels, app: hello-world-rest-api
+
+Deployment template section is for Pod & Pod has containers section with array of images (image-path, pull policy and name)
+Pod has a restart policy and termination grace period
+
+Deployment has replicas & deployment strategy of type Rolling update ( 1 at a time ) with maxSurge/available 25% and maxUnavailable 25%
+
+Service also have selector for POD
+Service doesnot map to deployment, it directly maps to a POD
+
+minReadySeconds will tell that after 45 second only send traffic to this pod, also once after 45 sec new pod is ready, then only remove the old pod
+
+We can also have multiple deployment map to same service
+for ex deployment v1 (0.0.1.RELEASE) and v2 (0.0.2.RELEASE) to same service which will show response from v1 & v2
+
+
+------------
+
+Deployment currency-exchange & currency-conversion
+
+http://52.158.208.251/currency-exchange/from/USD/to/INR
+http://13.89.110.97/currency-conversion/from/EUR/to/INR/quantity/10
+
+They both can talk to each other using service name: currency-conversion can talk to currency-exchange using service name http://currency-exchange
+
+As soon as service is started it registered with kubernetes dns, currency-exchange service register as http://currency-exchange & currency-conversion as http://currency-conversion
+
+k8s has service discovery enabled by default, which helps to discover other services also loadBalancing for these service as free
+
+------------
+
+Config Map:
+
+kubectl get configmap
+
+NAME                             DATA   AGE
+currency-conversion-config-map   1      5s
+
+Config Map Details:
+
+kubectl describe configmap currency-conversion-config-map
+
+------------
+
+Ingress:
+
+Right now Currency Exchange and Currency Conversion are deployed as LoadBalancer
+LoadBalancer are expensive we can't create it for each service
+
+We can switch these services to NodePort
+NodePort service type, a Port is exposed on a Node, using that we can talk to service
+
+
+------------
+
+Ingress Controller : 
+
+https://docs.microsoft.com/en-us/azure/aks/ingress-basic
+
+
+az ad sp list --all
+
+------------
+
+
+------------
+
+
+------------
+
+
+------------
+
+
+------------
+
+
+------------
+
+
+------------
+
+
+------------
+
+
+------------
+
+
+------------
+
+kubectl create deployment hello-world-rest-api --image=in28min/hello-world-rest-api:0.0.1.RELEASE
+kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
+kubectl scale deployment hello-world-rest-api --replicas=3
+kubectl delete pod hello-world-rest-api-58ff5dd898-62l9d
+kubectl autoscale deployment hello-world-rest-api --max=10 --cpu-percent=70
+kubectl edit deployment hello-world-rest-api #minReadySeconds: 15
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+ 
+gcloud container clusters get-credentials in28minutes-cluster --zone us-central1-a --project solid-course-258105
+kubectl create deployment hello-world-rest-api --image=in28min/hello-world-rest-api:0.0.1.RELEASE
+kubectl expose deployment hello-world-rest-api --type=LoadBalancer --port=8080
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=DUMMY_IMAGE:TEST
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl get componentstatuses
+kubectl get pods --all-namespaces
+ 
+kubectl get events
+kubectl get pods
+kubectl get replicaset
+kubectl get deployment
+kubectl get service
+ 
+kubectl get pods -o wide
+ 
+kubectl explain pods
+kubectl get pods -o wide
+ 
+kubectl describe pod hello-world-rest-api-58ff5dd898-9trh2
+ 
+kubectl get replicasets
+kubectl get replicaset
+ 
+kubectl scale deployment hello-world-rest-api --replicas=3
+kubectl get pods
+kubectl get replicaset
+kubectl get events
+kubectl get events --sort.by=.metadata.creationTimestamp
+ 
+kubectl get rs
+kubectl get rs -o wide
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=DUMMY_IMAGE:TEST
+kubectl get rs -o wide
+kubectl get pods
+kubectl describe pod hello-world-rest-api-85995ddd5c-msjsm
+kubectl get events --sort-by=.metadata.creationTimestamp
+ 
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.2.RELEASE
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl get pods -o wide
+kubectl delete pod hello-world-rest-api-67c79fd44f-n6c7l
+kubectl get pods -o wide
+kubectl delete pod hello-world-rest-api-67c79fd44f-8bhdt
+ 
+kubectl get componentstatuses
+kubectl get pods --all-namespaces
+ 
+gcloud auth login
+kubectl version
+gcloud container clusters get-credentials in28minutes-cluster --zone us-central1-a --project solid-course-258105
+ 
+kubectl rollout history deployment hello-world-rest-api
+kubectl set image deployment hello-world-rest-api hello-world-rest-api=in28min/hello-world-rest-api:0.0.3.RELEASE --record=true
+kubectl rollout undo deployment hello-world-rest-api --to-revision=1
+ 
+kubectl logs hello-world-rest-api-58ff5dd898-6ctr2
+kubectl logs -f hello-world-rest-api-58ff5dd898-6ctr2
+ 
+kubectl get deployment hello-world-rest-api -o yaml
+kubectl get deployment hello-world-rest-api -o yaml > deployment.yaml
+kubectl get service hello-world-rest-api -o yaml > service.yaml
+kubectl apply -f deployment.yaml
+kubectl get all -o wide
+kubectl delete all -l app=hello-world-rest-api
+ 
+kubectl get svc --watch
+kubectl diff -f deployment.yaml
+kubectl delete deployment hello-world-rest-api
+kubectl get all -o wide
+kubectl delete replicaset.apps/hello-world-rest-api-797dd4b5dc
+ 
+kubectl get pods --all-namespaces
+kubectl get pods --all-namespaces -l app=hello-world-rest-api
+kubectl get services --all-namespaces
+kubectl get services --all-namespaces --sort-by=.spec.type
+kubectl get services --all-namespaces --sort-by=.metadata.name
+kubectl cluster-info
+kubectl cluster-info dump
+kubectl top node
+kubectl top pod
+kubectl get services
+kubectl get svc
+kubectl get ev
+kubectl get rs
+kubectl get ns
+kubectl get nodes
+kubectl get no
+kubectl get pods
+kubectl get po
+ 
+kubectl delete all -l app=hello-world-rest-api
+kubectl get all
+ 
+kubectl apply -f deployment.yaml 
+kubectl apply -f ../currency-conversion/deployment.yaml 
+
+
+------------
+
+
+------------
+
+
+------------
