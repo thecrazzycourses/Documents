@@ -16,15 +16,8 @@ GCloud : GKE google k8s engine
 ------------
 
 Create Service Principal:
-az ad sp create-for-rbac -n "az-sp-playbook" --role="Contributor" --scopes="/subscriptions/c7681354-8704-4921-8c04-7052ca16ed4c"
+az ad sp create-for-rbac -n "az-sp-playbook" --role="Contributor" --scopes="/subscriptions/"
 
-{
-  "appId": "2182ee41-2083-4ab1-a03c-11817245d0ec",
-  "displayName": "az-sp-playbook",
-  "name": "http://az-sp-playbook",
-  "password": "16acffe5-c0af-494c-92d9-1e06e867dd27",
-  "tenant": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675"
-}
 
 https://docs.microsoft.com/en-us/azure/developer/java/spring-framework/deploy-spring-boot-java-app-on-kubernetes
 
@@ -32,10 +25,10 @@ CMD as Admin / Powershell As Admin
 
 Azure Login:
 az login --service-principal -u client-id -p client-secret --tenant tenant-id
-az login --service-principal -u 2182ee41-2083-4ab1-a03c-11817245d0ec -p 16acffe5-c0af-494c-92d9-1e06e867dd27 --tenant 4abd0f95-7bbc-45ae-9715-02dbb9cb9675
+az login --service-principal -u  -p  --tenant 
 
 Set Subscription:
-az account set -s c7681354-8704-4921-8c04-7052ca16ed4c
+az account set -s 
 
 Create Resource Group:
 az group create --name=wingtiptoys-kubernetes --location=eastus
@@ -47,7 +40,7 @@ Set Deafult ACR:
 az configure --defaults acr=wingtiptoysregistryacr
 
 Created AKS Using UI : As facing issue with below command
-az aks create --resource-group=wingtiptoys-kubernetes --name=wingtiptoys-akscluster --attach-acr wingtiptoysregistryacr --dns-name-prefix=wingtiptoys-kubernetes --generate-ssh-keys --service-principal 2182ee41-2083-4ab1-a03c-11817245d0ec --client-secret 16acffe5-c0af-494c-92d9-1e06e867dd27
+
 
 %%%%%%%%%%%%%%%%%%%%%%
 Deploy Using Command
@@ -448,33 +441,6 @@ https://docs.microsoft.com/en-us/azure/aks/ingress-basic
 
 
 az ad sp list --all
-
-------------
-
-
-------------
-
-
-------------
-
-
-------------
-
-
-------------
-
-
-------------
-
-
-------------
-
-
-------------
-
-
-------------
-
 
 ------------
 
