@@ -20,14 +20,8 @@ create new user for example command_line_user, provide admin access and create
 User
 command_line_user
 
-Access key ID
-AKIARKHM764PHGJOWBC5
-
-Secret access key
-aSTZ7sgSAFJgM4wa7H66Kbhl9d1nJi8dxj6t8gAr
-
-export AWS_ACCESS_KEY_ID=AKIARKHM764PHGJOWBC5
-export AWS_SECRET_ACCESS_KEY_ID=aSTZ7sgSAFJgM4wa7H66Kbhl9d1nJi8dxj6t8gAr
+export AWS_ACCESS_KEY_ID=
+export AWS_SECRET_ACCESS_KEY_ID=
 
 Create S3 Bucket: Manually from UI
 Its a strorage account for aws where we can store files for high avialablity from anywhere
@@ -171,15 +165,15 @@ You have logged in. Now let us find all the subscriptions to which you have acce
 [
   {
     "cloudName": "AzureCloud",
-    "homeTenantId": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675",
-    "id": "c7681354-8704-4921-8c04-7052ca16ed4c",
+    "homeTenantId": "",
+    "id": "",
     "isDefault": true,
     "managedByTenants": [],
     "name": "Free Trial",
     "state": "Enabled",
-    "tenantId": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675",
+    "tenantId": "",
     "user": {
-      "name": "rahul9582816650@outlook.com",
+      "name": "@outlook.com",
       "type": "user"
     }
   }
@@ -189,16 +183,10 @@ Now we will create Service Account :
 
 az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/subscription-id"
 
-az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/c7681354-8704-4921-8c04-7052ca16ed4c"
+az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/"
 
-Creating a role assignment under the scope of "/subscriptions/c7681354-8704-4921-8c04-7052ca16ed4c"
-{
-  "appId": "0902560f-57bd-4bf1-8023-bd76f722178f",
-  "displayName": "azure-cli-2020-05-21-15-37-01",
-  "name": "http://azure-cli-2020-05-21-15-37-01",
-  "password": "ebd20fac-0903-4266-a47a-82b16d1506b2",
-  "tenant": "4abd0f95-7bbc-45ae-9715-02dbb9cb9675"
-}
+Creating a role assignment under the scope of "/subscriptions/"
+
 
 Generate SSH Key :
 
@@ -225,22 +213,10 @@ az aks get-credentials --name aks-name --resource-group resource-group-name
 
 az aks get-credentials --name k8stest_dev --resource-group kubernetes_dev
 
-az login --service-principal -u 0902560f-57bd-4bf1-8023-bd76f722178f -p ebd20fac-0903-4266-a47a-82b16d1506b2 --tenant 4abd0f95-7bbc-45ae-9715-02dbb9cb9675
+az login --service-principal -u  -p  --tenant 
 az aks enable-addons --addons kube-dashboard --resource-group=kubernetes_dev --name=k8stest_dev
 az aks browse --resource-group=kubernetes_dev --name=k8stest_dev
 
---------------------------
-
-
-
---------------------------
---------------------------
---------------------------
---------------------------
---------------------------
---------------------------
---------------------------
---------------------------
 --------------------------
 
 terraform --version
