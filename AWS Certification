@@ -1,0 +1,921 @@
+AWS:
+----
+
+***************************************************************************************************************************************************************************************************************
+*************************************************************************AWS IAM : Identity Access Management**************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+1. User are of 2 type Root User & IAM User
+2. By default with AWS Account we login with Root User
+3. Open IAM Service, 
+   Create Group ex Developers assign managed policy to this group (policy thar are already created for us), 
+   Create User ex rahul_dev, assign user to group, 
+   Give programatic or aws console access and we are done with the new IAM user creation.
+   
+Account ID : 196439440032
+User : rahul_dev
+or
+https://196439440032.signin.aws.amazon.com/console   
+   
+***************************************************************************************************************************************************************************************************************
+************************************************************************************Region && Zones************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+1. London region will going to have 1 data center : If this data center goes down, own app will be down, latency issue for indian users
+2. London region will going to have 2 data center : If 1 data center is down, still we can access from other data center, latency issue for indian users
+3. London region will going to have 2 data center & Mumbai region goign to have 2 data center : all the issues are solved now
+
+High Availabilty
+Low Latency
+Adhere to goverment regulation
+
+AWS Services are Regional and Global ex EC2 is regional which is avialable in multiple region, IAM is global which is present in all region.
+
+example:
+Region Code : us-east-1
+Region : US EAST
+Availablity Zones : 6
+Availablity Zone List : us-east-1a, us-east-1b, us-east-1c, us-east-1d, us-east-1e, us-east-1f
+
+
+***************************************************************************************************************************************************************************************************************
+*************************************************************************AWS Virtual Servers : EC2 Service*****************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+1. EC2 : Elastic Compute Cloud
+2. In coperate data center, app is deployed on physical servers.
+3. Where we deploy app in cloud :
+   a. EC2 Instance : Virtual servers in AWS ( billed per second )
+   b. EC2 Service : Provision EC2 instnaces or virtual servers, EC2 Service also perform below task:
+      Create and Manage lifecycle of EC2 instances
+      Loadbalancing and auto scaling of multiple EC2 instances
+      Attach Storage ( Network Storage ) to your EC2 instances ( so that we can install OS )
+      Manage netowrk connectivity for an EC2 instance ( So that we can connect via public or private ip )
+
+4. Virtual Firewal protects Virtual Servers ( EC2 Instance), these Virtual firewall know as Security Group
+5. Virtual Firewall to control incoming and outgoing traffic to/from AWS resource ( EC2 instances, databases etc)
+6. Users ---> Security Group ---> EC2 Instance
+7. Default is deny for inbound and outbound, no traffic is allowed in and out of ec2 instance
+8. Security changes are immediately effictive at runtime
+
+9. Public IP address are accessable from internet
+10. Private IP address are internal to coperate network
+11. We cannot have 2 resources with same public ip address
+12. We can have 2 resource with same private ip address in 2 different coperate network
+13. All ec2 instance are assigned with private ip address
+14. Creation of public ip adress can be enabled for ec2 instance while creating the ec2 instance
+15. When we stop ec2 instance public ip address is lost
+16. To get constant ip address use elastic ip address
+17. Elastic ip address remains attached even after stopping the ec2 instnace
+18. Elastic ip address can be detach from ec2 instance and can be used by other ec2 instance
+19. Elastic ip addresss is charged : elastic ip is not assocaited with an ec2 instnace or ec2 instance associated with elastic ip is stopped
+
+
+## Commands      
+sudo su
+yum update -y
+yum install httpd
+systemctl start httpd
+systemctl enable httpd
+echo "Http Server is up and running" > /var/www/html/index.html
+ 
+curl http://169.254.169.254/latest/meta-data
+curl http://169.254.169.254/latest/meta-data/ami-id
+curl http://169.254.169.254/latest/meta-data/hostname
+curl http://169.254.169.254/latest/meta-data/instance-id
+curl http://169.254.169.254/latest/meta-data/instance-type
+ 
+curl http://169.254.169.254/latest/dynamic
+curl http://169.254.169.254/latest/dynamic/instance-identity
+curl http://169.254.169.254/latest/dynamic/instance-identity/document
+ 
+curl -s http://169.254.169.254/latest/dynamic/instance-identity/document > /var/www/html/index.html
+
+## Create EC2 instance using user-data
+#!/bin/bash
+yum update -y
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+curl -s http://169.254.169.254/latest/dynamic/instance-identity/document > /var/www/html/index.html
+
+## Create EC2 insatnce with launch template
+from action use create template from instance
+
+## Customized AMI
+
+## AMI
+1. Amazon Machine Image
+2. It has OS and software for the instnace
+3. AMI Source: provided by aws, aws market place (online store for customized ami, per hour billing), customized ami
+4. AMI contain : root volume block storage (os and app ) , block device mapping for non-root volumes
+5. AMI launch configure : who can use  them, we can share ami with other aws account
+6. AMI are stored in amazon s3 ( region specific )
+
+## SSH
+chmod 400 ec2-default.pem : change to read only permission 
+ssh -i "ec2-default.pem" ec2-user@ec2-13-126-30-131.ap-south-1.compute.amazonaws.com 
+
+Linux do ssh on port 22
+Windows do rdp on port 3389
+
+Use either Public IP or Public DNS to connect via ssh or rdp
+
+Zero charge for stop instance ( if you have storage attached, you have to pay for storage)
+ 
+ 
+***************************************************************************************************************************************************************************************************************
+*************************************************************************AWS Elastic Load Balancer*************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+
+
+Users --> Elastic Load Balancer --> EC2 Instance 1
+ 				 --> EC2 Instnace 2
+
+1. Distribute traffic across ec2 instances in 1 or more availablity zone in a single region
+2. Managed Service : AWS ensure that it is highly avilable
+3. Auto scale to handle huge loads
+4. Load balancer can be public or private
+5. Health Check : route traffic to healthy instances
+
+6. Network Layer : IP internet protocol, transfer bytes and its unreliable
+7. Transport Layer : TCP transmission control reliability > performance, TLS transport layer security : secure tcp, UDP user datagram protocol : performace > reliablity
+8. Application Layer : HTTP stateless request response cycle, HTTPS secure http, FTP file transfer protocol, SMTP simple mail transfer protocol
+9. Application layer make use of layers beneth them like network and transport layer
+10. Most application tipically communicate at application layer :
+    webapp/restapi (http, https) email server (smtp) , file transfer (ftp)
+    all these applications use tcp/tls at network layer for reliability
+
+11. Types of Elastic Load Balancer
+    a. Classic Load Balancer : Layer 4 transport layer & Layer 7 application layer, not recommend by aws, supoort http/https, tcp/tls
+    b. Application Load Balancer : Layer 7, new generation support http/https and advance routing approaches
+    c. Network Load Balancer : Layer 4, new generation support tcp/tls and udp, very high performance usecase     				
+ 
+12. Application Load Balancer : 
+    Popluar and frequently used ELB in AWS
+    Supports websockets and http/https layer7
+    Support all important load balancer feature
+    Scales automatically based on demand
+    Can load balance : ec2 insatnce, containerized application, web application, lambdas
+  
+    we can allow inbound rule to get traffic only from application-loadbalancer-sg and deny rest, this way we cant acess our ec2 instnaces directly using public ip
+    Load balancer traffic rule : inbound from anywhere
+    Instnace traffic rule : only from loadbalancer
+    
+    Listeners :
+    listen for connection request from the client
+    each listner has protocol, port, set of rules to route request to target
+    we can listen on port 443 and redirect to port 80 or return fixed response
+    http request on port 80 roouted to ec2 instnace
+    https request on port 443 are routed to port 80
+    http request on port 8080 get a fixed response ( text or html) 
+ 	
+    Target Group:
+    Group of instances, we can add instance to target group we can remove instnace.
+    Group of lamda functions
+    Set of IP addresses
+    Target Deregistration Delay : 5 Minutes, time given to execute any on going request or process after that unregister that instnace
+    Slow Start Duration : delay given to newly added instance in the target group so that it can warm-up/start-up before cater the request
+    Load Balancing Algo : Round Robin (default) or Least outstanding request (send request to the instance which has min no of request)	
+    Stickiness: using cookie we can implement this, we can send request from same user to same instnace every time
+
+13. Microservice architecture - Multiple target group:
+    microservice architecture can have 1000 of microservices
+    one ALB can support multiple microservices 
+    create seprate target group for each microservices
+    classic load balancer does not support multiple target group    
+    
+    Listner Rule : if path /microservice-a then target group 1, if path /microservice-b then target group 2
+    configure multiple listner rule foe the same listner
+    rule are executed in the order they are configured
+    default rule is executed in the last
+    listner rule are based on path, host, http header, query string, ip address
+
+14. Autoscaling Groups: maintain configured no of instances ( using periodic health check ), if instance goes down ASG will launch replacement instance
+    ELB can distribute load to active instances as ASG expands and contract based on load    
+    
+    Loadbalancer ---> Instances in Target Group
+    Loadbalancer ---> Instances in Autoscaling Group need to be make part of existing or new target group  	
+
+15. Network LoadBalancer :
+    function at transport layer 4 tcp/tls udp
+    for high performance usecase (million of request per second)
+    can be assigned a static / elastic ip
+    can load balance between ec2 instance, containerized app, web app
+    	     
+16. EC2 & ELB for architect : high availablity, high scalablity, improve performance, improve security, low cost
+    high availablity : deploy to multiple availablity zone, for classic and network enable cross zone load balancing, deploy to multiple region, configure health check for EC2 & ELB	
+    high scalablity : deploy to bigger instance with cpu and memory, increase no of app instance and setup load balancer
+                      vertical scaling : large hard drive, more cpu, more memory, there are limit to vertical scaling
+                      horizontal scaling : create multiple instance with load balance, preffered over vertical scaling
+
+17. Placement Group : need control over where instnace will be placed in a rack (host), same instnace in same rack (low latency but high chance of simultaneously failures)
+    Cluster : low netwrok latency, big data & high performance are in single AZ, disadvantage low avialblity
+    Spread : avoid simultaneously failures, each rack/host has its own network ans power source, max of 7 running instances per AZ in a spread placement group     
+    Partition : create partition with same instnaces but across host/racks, combination of cluster and spread, we can chose in which partition instance will go, 
+                can be spread across different AZ in same region, max of 7 partition per availablity zone per group
+    We might get insufficeint capacity error when new instance is added, more than 1 instance type is used or when instnace in placement group stopped and started
+    try stop and start all instnace in placement group, try to launch placement group again as a result instnaces may migrate to a rack with high capacity
+    recommendation : have only 1 instance type ( all will be t2.micro ) in a launch request
+                     lauch all instnaces in a single launch request together
+
+18. Elastic Network Interface :
+    logical networking compomnent that represent a virtual netwrok card
+    support ipv4 & ipv6
+    each elastic network can provide 1 primary and multiple secondary private ip address
+    each elastic network can provide 1 public address
+    per elastic network can attach 1 elastic ip address per private ipv4 address
+    per elastic network can attach 1 or more security groups
+    
+    Netwrok interface are of 2 type primary & secondary, each ec2 instnace is conneted to primary interface (eth0)
+    we can create and attach secondary netwrok interface (eth1), allows an instnace to be dual homed - present in 2 subnets in a VPC
+    
+    Hot attach : attach eni when ec2 instnace is running
+    Warm attach : attach eni when ec2 instnace is stopped
+    Cold attach : attach eni at launch time of ec2 instance     
+
+19. Elastic Load Balancer : 
+    Application/Classic Load Balancer : SSL Termination, client to elb https & elb to ec2 instnace http
+    Network Load Balancer : TLS Termination, client to elb tls and elb to ec2 instance tcp
+
+
+
+***************************************************************************************************************************************************************************************************************
+*************************************************************************AWS Elastic Bean Stalk****************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+
+
+1. Simplest way to deploy and scale your web app in aws, provide end to end web app management
+2. Support Java, .Net, NodeJS, Python
+3. No usage charges, pay only for aws resources you provision
+4. Feature : automatic load balancing, auto scaling, managed platform updates, app health monitoring
+5. Under the hood it created Load Balancer, Target Group, EC2 Instance , deployed code stoted in S3 also logs stored in S3 or Cloud Watch
+6. For web app we use web server tier and for batch app we use worker tier
+7. Ideal for simple web app like UI app not for microservices
+    
+#!/bin/bash
+curl -s http://169.254.169.254/latest/dynamic/instance-identity/document > /var/www/html/index.html
+mkdir /var/www/html/a
+echo “Microservice A” > /var/www/html/a/test.html
+ 
+ 
+
+***************************************************************************************************************************************************************************************************************
+****************************************************************Serverless Lambda & API Gateway****************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+
+1. Serverless means you dont need to manage the servers
+2. Focus on building the app and leave about servers, scaling, availablity, capacity, loadbalancing
+3. Pay for use only 
+4. Lambda function takes max 15 min of timeout
+
+5. User ----- API Gateway ---- Lambda 
+   most app are built around rest api
+   management of rest api are not easy:
+   need to take care of authentication and authorization	
+   need to set rate limit
+   manage multiple versions to be active at same time
+   monitor api calls
+   cache api calls
+   
+   amazon api gateway is managed service with auto scaling that act as front door to our api
+   so it publish, maintain, monitor and secure api at any scale
+   it be integrated with lambda, ec2, ecs or any web app
+   support https and websocket
+   api gateway is serverless and we need to pay per use
+   api gateway use client certificate to call our backend api ( to make secure call )	
+ 
+## Virtual Private Cloud ( VPC and Subnets )   
+1. Its a virtual private network
+2. Network traffic within a VPC is not visible from all other amazon vpc
+3. We can controll all the trafic coming in & going out of a VPC
+4. Best practice to create all your resources like compute, storage, database in a VPC this will secure resources from unauthorized access and enable secure communication between your cloud resources
+
+User -- ELB (public) -- EC2 Instance (private) -- Database (private)
+5. Subnet: when we have to seprate private resources from public resources inside a VPC
+6. resource in public subnet will be accessable from public network and resource from private subnet can't be access from public network
+7. Each VPC is created in a region
+8. Each Subnet is created in a avialblity zone 
+9. Example: VPC us-east-1 and Subnets us-east-1a, us-east-1b, us-east-1c
+
+10. CIDR Blocks: classless inter domain routing
+11. Example: resource inside a specific network can use ip address from 69.208.0.0 to 69.208.0.15 means total 16 ip address
+    if we want to express these in range then we need to use cidr block
+    cidr block consist of starting ip address 69.208.0.0 and a range (/28)
+    example cidr block 69.208.0.0/28 represents address from 69.208.0.0 to 69.208.0.15 - a total of 16 address
+    how its calculated : 69.208.0.0/28 indicates that the first 28 bits (out of 32) are fixed
+    remaing last 4 bits (32-28) can change => 2 power remaing bits => 2 power 4 => 16 address
+    we can use this website to calculate: https://cidr.xyz/
+    example:
+    69.208.0.0/24     69.208.0.0-69.208.0.255   256
+    69.208.0.0/25     69.208.0.0-69.208.0.127   128
+    69.208.0.0/26     69.208.0.0-69.208.0.63    64
+    69.208.0.0/27     69.208.0.0-69.208.0.31    32
+    69.208.0.0/28     69.208.0.0-69.208.0.15    16
+    69.208.0.0/29     69.208.0.0-69.208.0.7     8
+    69.208.0.0/30     69.208.0.0-69.208.0.3     4
+    69.208.0.0/31     69.208.0.0-69.208.0.1     2	
+    69.208.0.0/32     69.208.0.0-69.208.0.0     1
+    
+12. Every VPC is associated with a CIDR block
+13. CIDR block of VPC can be from /16 (65536 IP Address) to /28 (16 IP Address)
+14. Chose wider range of CIDR then you would need
+15. There cannot be an overlap of a VPC CIDR block with any other connected network
+16. All address inside a VPC CIDR range are private address
+    cannot route to private address from internet
+    for public subnet we have public and private ip, public ip use to communicate with internet
+17. CIDR block for a subnet must be a subset or the same as the cidr block of vpc
+18. Minimum subnet range is /28 (16 address) (same as vpc above)
+19. In each subnet, 5 IP Address (first four and last) are reserved by AWS
+20. Every new AWS account has a default VPC /16 in every region with public subnet /20 in every availablity zone
+21. Address range of VPC can be extended ( add a new CIDR block) and address range of subnet cannot be changed
+
+
+***************************************************************************************************************************************************************************************************************
+*******************************************************************************Internet gateway****************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+
+Internet ---- Internet gateway ---- Subnet
+22. One to one mapping with VPC ( and internet gateway )
+23. Translate private ip address to public ip address and vise versa
+24. Each subnet has private and public ip address and internet gateway translate from public to private and vise versa
+25. For public subnet create route table access to internet gateway
+26. For private subnet create route table which dont have access to internet gateway ( This way we prevent it accessable from internet )
+27. any subnet which has a route to internet gateway is called public subnet
+28. any subnet which does not has a route to internet gateway is called private subnet
+29. Subnet can't be spread over two avialablity zone
+30. We can have two subnets in one availablity zone
+31. With a VPC a route table is created which has default route, which has enabled communication between resources in all subnet in a VPC
+32. Default route table rule can't be deleted or edited
+33. Each subnet can have its own route table or share its route table with the VPC
+34. if subnet does not have route table associated with it, it implicitly uses the route table of its vpc
+35. multiple subnet can share a route table, but at a time a subnet can be associated with one route table only
+
+36. Default security group is created when we create VPC
+    Allows all outbound traffic 
+    Allows communication between resources assigned with the default security group, but new security group assigned to db and ec2 both these resources can't talk but with default they can talk
+    Denies all other inbound traffic
+    Can't delete default security group
+    EC2 instance if we dont create a security group default security group of VPC will be assign
+   
+   
+* * * * * curl API_GATEWAY_URL                : every 1 minute
+* * * * * sleep 15 && curl API_GATEWAY_URL    : every 15 second
+* * * * * sleep 30 && curl API_GATEWAY_URL    : every 30 second
+* * * * * sleep 45 && curl API_GATEWAY_URL    : every 45 second
+
+***************************************************************************************************************************************************************************************************************
+*******************************************************************************Nat Gateway*********************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+## Nat Gateway :  use case is we have a db in private subnet and we want patch from internet on regular basis
+
+
+approach : internet --- internet gateway --- nat gateway --- 
+1. Create NAT gateway in public subnet so that it can talk to internet via internet gateway
+2. Allocate a Elastic IP Address
+3. In the private subnet route table add a rule to route to nat gateway
+4. Nat gateway is managed service, nat gateway supports ipv4 and egress only internet gateway for ipv6
+   nat agteway uses internet gateway, create in public subnet which has route to internet gateway
+   
+## NACL netwrok access control list
+1. security group control traffic to a specific resource in a subnet.
+2. if we want to stop traffic from even entering the subnet then we need to use nacl
+3. nacl provide stateless firewall at subnet level
+4. default nacl allow inbound and outbound traffic but custom nacl denies inbound and outbound
+5. we can have multiple rules and each rule has priority no, lower the no higher the priority of the rule
+6. each subnet must be associated with nacl
+
+
+***************************************************************************************************************************************************************************************************************
+********************************************************************************S3 Storage*********************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+## S3 Storage : simple storage service
+1. low cost, store large object in key/value approach, also knows as object storage, provide rest api to store and modify, provide unlimited storage
+2. object are replicated under same region multiple availablity zone
+3. stores file of all kind text, binary, backup & archive
+
+4. In s3 we have buckets (fundamental containers)
+5. bucket name is globally unique, we can block public access using block all public access while creating the bucket
+6. S3 is global service not specific to region but bucket is created in a specific aws region
+7. Objects are stored in bucket, we can store unlimited object in a bucket, there is somemthing called object lock if that is enabled then we can't delete any object in a bucket, object lock enable        versioning, we have storage class in bucket which depend on access requirement like standard (frequently access data) or standard-1a (long lived, infrequently access data)
+8. Each object is identified by a key value pair, bukcet name are used as a part of object url - can contain only lower case letter, numbers, hypens, periods, we can have unlimited object in a bucket 
+9. Key is unique in a bucket, max object size is 5 TB 
+10. There is no hierarchy of buckets, sub buckets or folder everthing is key value pair exaple file in dir a inside this dir b inside this c.jpg then key will be a/b/c.jpg and value will be jpg file
+11. Once versioning is enaled we will start seeing version if we update the same object, 
+12. Which S3 feature allows you to move files between different S3 Storage Classes : S3 life cycle configuration
+13. Which of the below CANNOT be configured at an individual object level : versioning
+14. ACLs are primarily used to grant permissions to the public and other AWS accounts : true
+15. For object value we have options open, download, download as (rename file before download), copy path (copy link to that file, which we can open in new browser tab)
+16. Object overview has options open, download, download as (rename file before download), copy path
+17. Object has properties assign to it: storage class, encryption, metadata, tags, object lock
+18. Object has permissions : access for object owner, access for aws accounts, public access
+
+19. At bucket level we have overview, properties, permission, management, access points
+    1. properties : versioning, server access logging, static website hosting, object level logging, default encryption 
+    
+    a. versioning : multiple version of same object in a bucket provides track of changes to object and protect from deletion, default disabled at bucket level, old object will have version of none once 			   we enable version after creating/uploading few objects in a bucket, once versioning is enabled we can only suspend versioning (for new objects)and old version will remain same	
+ 		   donot enable access logging for a bucket its billable
+ 
+    b. server access logging: default disabled, enable and select bucket name you want to enable access logging, we can add prefix like /logs under this all the access logs will be stored, we need to give 	    permission to write to this bucket for access logging we can give permission from permission tab - access control list - s3 log devlivery group permission ( read and write permissions)
+ 
+    c. static website hosting: select use this bucket to host a website and provide a html file ex index.html which should be uploaded or created at root level, provide access so that it can be access from 					public, at bucket level go to permissions - block public access which is enabled by default turn it off and confirm, under bucket policy we need to say give read access to 					this bucket after this we can access our html file ( html - javascript - css based app, only static app) ex click documentation - bucket policy example - grant read only 				permission to anonymous user copy policy and paste (replace bucket name) ( effect - allow, principal - * allow every body, action - getobject api, resource - bucket name)  
+   
+    d. object level logging: if we want to log all api activity ( ex create bucket object, update, delete, get ) then we need to turn-on object level logging, cloud trail is used for this
+    e. default encryption: none, aes-256, aws-kms. default encrypt is disabled we can use aes-256 which is server side encrypt with aws managed keys, aws will manage encrypt keys and save encrypt data in 				    bucket other option is aws-kms in which we can use kms service key management service to create our keys and use for encrypt instead of aws managed keys
+    
+    advance setting of bucket properties
+    
+    f. object lock: prevent object from being deleted, object lock can be enabled only at the time of bucket creation
+    g. tags: can be assigned to most of the aws resources, its key value pair, used to automation, security pilicy and cost tracking etc
+             ex env: dev, classofocation: secure, project: a
+             can be used in creating life cycle policies ( where we can transion storage class like standard to standard-1a using tags)
+             can be updated continuously during the lifetime of an object
+    h. transfer acceleration: once enabled it will use new accelerated endpoints for faster data transfer, which will incur an additional fee
+    i. requester pays: In general, bucket owners pay for all Amazon S3 storage and data transfer costs associated with their buckets.
+                       A bucket owner, however, can configure a bucket to be a Requester Pays bucket.
+                       With Requester Pays buckets: The requester instead of the bucket owner pays the cost of the request and the data download from the bucket
+                       The bucket owner always pays the cost of storing data.
+    j. event notification: we can send notification whenever new object is created, deleted, replication evenets completed etc we can send notification amazon sns topic, amazon sns queue or aws lamda 		           function                   
+    
+amazon s3 prefix: allows to search keys starting with a certain prefix            
+  
+    2. permission: block public access, access control list, bucket policy, cors configuration
+       cors configuration: cross origin request sharing, allow sharing content to other domains for example image to other domain, go to documentation
+       block public access is at higher level, in order to enable access control list or bucket policy, block public access should be enabled
+       bucket policy is at bucket level
+       access control list is available at bucket level as well as object level
+       bucket access control list: access for bucket/object owner, access for other aws accounts, public access
+       object access control list: used when the bucket owner is not the object owner ex you create bucket but someone else is managing the bucket
+                                   or when you need different permission for different object in the same bucket
+       Note. bucket/object acl cannot have conditions like bucket pilicy, cannot explicity deny access ( we only have allow options), can't give permission to indivial user 				  ( can give permission to group of users like public or other aws account )                              
+       
+S3 Lifecycle Configuration: we can manually change from standard to standard-ia but what if we have 1000 of files, in that case we can use object level -- management -- lifecycle
+   it perform 2 kind of actions : transition actions ( one storage class to another ) and expiration actions ( delete objects ex after 1 month )
+   we have to create new life cycle policy, name it give transition storage class , give expiry and done
+
+Billing alert: dont enable cross region replication
+
+Amazon S3 Bucket Replication:
+1. replicate objects between buckets in same or different region, could be cross account, can be configured at bucket level, shared prefix level, or object level using s3 object tags
+2. access to destination bucket is provided by IAM policy, only new object will be replicated
+3. it reduces latency and meets regulations
+4. use case object replication between dev and test env
+5. bucket -- management -- replication
+
+S3 Consistency Model:
+for creation there is a gauranty that it will be avialable for read immediatly
+for update and delete either we will get older version v1 or updated version v2
+
+S3 Presigned URL:
+for time based access we can cretaed presigned url for access the object
+signed url contains token and expiry time
+
+S3 Access Point:
+if we want to give bucket access to specific VPC then we can use access point
+
+S3 Glacier:
+archives files are stored in vaults container
+archive keys are system genrated identifier
+after archive is created it can't be updated
+each archive can be upto 40 tb
+only vault operation are supported, we can't upload delete update archives
+mandatory using aws managed keys and aes-256, we can use client side encrypt on top of this
+enable vault lock policy
+
+
+***************************************************************************************************************************************************************************************************************
+***************************************************************************************IAM*********************************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+## IAM
+1. Provide authentication, authorization, identites can be aws user or externally authenticated user
+2. Provide very granular control : limit a single user to perform single action, on specific aws resource, from a specific ip, during specific time window
+3. We can add policy to group or to user directly
+4. We used to create group then add policy to group and finally add user to group
+5. We can create custom policy and attach to group
+6. We can have inline policy for a group where we can select the policy for a specific service
+
+AKIAS3PFT7KQI5ETVW3L
+nevgJjsEe2JdmAIx0zO98jxzd6fL/i3B588ftcge    
+
+7. user: have there creadentials as well as access key to login, permanent identities
+8. groups: collection of users
+9. roles: temp identities, does not have credentials attach, expire after a set period of time ex we create role for ec2 instance to access s3 with readonly permission
+10. policy: aws managed policy (predefined), customer managed policy which we can create and inline policy which can be directly embeded into a user, group, role
+11. for user, groups, role we can attach policy
+
+AWS IAM Policy example for Administrator Access:
+{
+  "Version": "2012-10-16"
+  "Statement": [ {
+  	"Effect": "Allow",
+  	"Action":"*",
+  	"Resource":"*"
+   }
+  ]
+}
+
+policy is json document which has 1 or more permission
+Effect: Allow or Deny
+Resource: Which resource are you providing access to ?
+Action: What action allowed on a resource ?
+Condition: are there any restriction on ip address ranges or time interval ? 
+ 
+AWS IAM Policy example for AmazonS3ReadOnlyAccess:
+{
+  "Version": "2012-10-16"
+  "Statement": [ {
+  	"Effect": "Allow",
+  	"Action": [
+		     "s3:Get*",
+		     "s3:List*"   	
+                  ],
+  	"Resource":"*"
+   }
+  ]
+} 
+ 
+Instance Profile: ex ec2 to s3
+is a simple container for IAM role
+use to pass role info to ec2 instnace
+
+EC2 instance ---------- Amazon S3
+first we create role, we attach that role to ec2 instance and then ec2 instance can access the s3
+instance profile is automatically created when we create a role for ec2 instance
+
+***************************************************************************************************************************************************************************************************************
+***************************************************************************************Data Encryption*********************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+
+## Data Encryption
+1. Data at rest (database), data in motion (over network), data in use ( in a ram )
+2. encrypt data at rest ex database, ecrypt data in montion ex https over network
+3. AWS Key Management Service and Cloud Harware Security Module will help in encrypt ( asymetric ) 
+4. How do we genrate, store, use and replace your keys are 4 questions
+5. KMS ans HSM provides service like : manage your keys and perform encryption and decryption
+
+
+KMS:
+create and manage cyptographic keys symetric and asymetric
+control there use in your application and aws service
+define key usage permission, inclusing cross account access
+track key usage in aws cloud trail
+integrate almost with all aws service that need data encryption
+automatically rotate master key once a year
+schedule key deletion to verify if the key is used
+
+Server Side Encryption:
+SSE-S3: AWS manages its own key, keys are rotated every month, request header - x-amz-server-side-encryption(AES256)
+SSE-KMS: Customer manage key in KMS, reuqest header - x-amz-server-side-encryption(aws:kms) and x-amz-server-side-encryption-aws-kms-key-id(ARN for keys in KMS)
+SSE-C: Customer send key with every request, S3 perform encryption and decrypt without storing the key, HTTPS is mandatory  
+
+
+Client Side Encryption:
+client will encrypt data and send to aws and manage encryption process 
+
+
+***************************************************************************************************************************************************************************************************************
+***********************************************************************************Storage Fundamental*********************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+## Storage Fundamental
+we have 2 kind of storage harddisk ( block storage ) and file sharing ( file storage ) 
+direct attach storage - similar to hard disk & pool of storage devices - storage area network
+Block storage - amazon elastic block store & instnace store && File Storage - Amazon EFS for linux, Amazon FSx for windows and Amazon FSx for luster ( high performance )
+block storage device can connect to 1 virtual server but file storage device can connect to multiple virtual servers
+
+instance block store: are physically attach to ec2 instance, stores temp data and lifecycle tied to ec2 instance
+its the host machine storage on which ec2 is created
+
+elastic block storage is network storage, more durable and lifecycle is not tied to ec2 instnance
+
+root volume for an ec2 instance is where os is installed. we can't remove root volume from ec2 instance
+we can create volume in a availablity zone and can only attch to instnaces running in same availablity zone
+
+Amazon Elastic Block Store SSD Types:
+General Purpose SSD && Provisioned IOPS SSD
+
+General Purpose SSD:
+I/O performance increase with size
+balance price and performance
+use case : small/medium database, dev/test environment & boot volumes
+burst upto 3000 IOPS above base line
+volume size 1gb to 16 TB
+max iops/volume 16,000 
+max thoughput/volume 250 mb/s
+used as boot volume
+
+Provisioned IOPS SSD:
+Provision IOPS you need
+Designed for low latency transcational workload
+deliver consitent performance for random and sequential access
+use case : large relational or nosql database
+volume size 4gb to 16 TB
+max iops/volume 64,000 
+max thoughput/volume 1000 mb/s
+used as boot volume
+
+
+General Purpose HDD:
+Throughput Optimized HDD && Cold HDD
+
+Throughput Optimized HDD :
+for frequent access, throughput-intensive sequential access
+use case: mapreduce, kafka, log processing, data warehouse and ETL
+volume size 500 gb to 16 TB
+max iops/volume 500 
+max thoughput/volume 500 mb/s
+not used as boot volume
+
+Cold HDD:
+Lowest Cost
+Use Case : infrequent data access, very low transcation database
+volume size 500 gb to 16 TB
+max iops/volume 250 
+max thoughput/volume 250 mb/s
+not used as boot volume
+
+EBS Snapshot:
+we can create snapshot out of volumes
+we can create snapshot of volumes and copy to other regiona and again create volume of snapshot
+we can use faster snapshot restore to speed up the process of creating volumes from snapshot, elimates need for pre warming volumes created from snapshot
+
+Faster IO Performance betweem EC2 and EBS
+launch ec2 instnace as ebs optimized instance
+enhance networking through elastic network adaptor ENA, increases throughput
+use elastic fabric adaptor: EFA = ENA + OS Bypass, ideal for high performance computing
+
+RAID 0 : performance is more important than fault tolrance, data lost even if i disk fail
+RAID 1 : higher fault tolrance
+
+
+***************************************************************************************************************************************************************************************************************
+*************************************************************************AWS EFS : Elastic File Storage********************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+1. We can attch same EFS to multiple EC2 Instnaces, which is not the case with EBS
+2. Auto scale, we dont need to provision like EBS
+3. EFS support Posix and NFS which are file sharing standard
+4. Pay for use
+5. Highly available and durable across AZ in one region
+6. Compatible with Amazon EC2 based Instances, can share with 1000 of EC2 Instances
+7. Use case: file share , content management, media
+
+# Amazon FSx for Luster:
+1. File system optimized for performance ex machine learning
+2. Integrate with S3
+3. Posix Compliant
+4. File system data is automatically encrypted at rest and in-transit ( Using KMS )
+
+# Amazon FSx Windows File Server:
+1. Fully managed window file server
+2. Use Service Message Block SMB protocol
+3. Accessable from windows, linux, macos
+4. Integrate with Microsoft Active Directory
+5. File system data is automatically encrypted at rest and in-transit ( Using KMS )
+6. All file sharing option is accessable on AWS and on premise
+
+Note:
+Type of storages
+1. Block : EBS & Instance Store
+2. File: EFS, FSx Windows & FSx Lustre 
+3. Object: S3
+4. Archival: Glacier
+
+***************************************************************************************************************************************************************************************************************
+*************************************************************************AWS Hybrid Storage: Storage Gateway***************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+1. Hybrid storage (on premise & cloud)
+2. Unlimited cloud storage for on premise software applications
+3. Encrypt data by default
+4. Three options : AWS Storage File Gateway ( S3 ), AWS Storage Tape Gateway ( S3 & Glaicer ), AWS Storage Volume Gateway ( Block Storage ) ( cache : cache on premise and S3 on cloud & stored : copy from   on premise to cloud EBS )
+5. VM image with AWS Storage Gateway software deployed on premise
+
+
+***************************************************************************************************************************************************************************************************************
+***********************************************************************************************AWS Databases***************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+
+1. Most synchronous replication products write data to primary storage and the replica simultaneously.As such, the primary copy and the replica should always remain synchronized
+   In contrast, asynchronous replication products copy the data to the replica after the data is already written to the primary storage.
+2. Types of Database: Relational DB
+3. Relational DB : Predefined schema with tables and relationship, very strong transaction capability
+   OLTP : online transaction processing 
+   OLAP : online analytics processing 
+   
+   OLTP:
+   1. applications where large no of users make large no of small transaction
+   2. use case: ERP, CRM, E-Commerce, banking applications
+   3. Popluar DB : MySQL, Oracle, SQL Server
+   4. Recommended AWS Managed Service: Amazon RDS
+   5. Store data in row
+   
+   OLAP:
+   1. applications allowing user to analyze petabyte of data
+   2. use case: reporting application, data ware house, buisness intelligence, analytics system
+   3. example : insurance premiums analyze data for last 100 years
+   4. data is consolidated from multiple transactional database
+   5. Recommended AWS Managed Service: Amazon Redshift, petabhyte distributed data ware house based on PostgresSQL
+   6. Store data in column, high compression & distributed data & execute single query across multiple nodes
+
+4. Document DB:
+   1. Structure data the way your application need it
+   2. Create 1 table instead of dozen
+   3. Quickly evolving semi structured data ( schema less )
+   4. Use case: Content Management, Catalogs, User Profile
+   5. Advantage : Horizontal Scalable to terabytes of data with milli second of response upto million of transaction per second
+   6. Recommended AWS Managed Service: Amazon DynamoDB
+
+5. Key DB:
+   1. Simple key value pair to store data. Key is unique identifier. Value can be object or simple data value.
+   2. Use case: Shopping Kart, Session Stores, gaming app, high traffic web app
+   3. Advantage : Horizontal Scalable to terabytes of data with milli second of response upto million of transaction per second
+   4. Recommended AWS Managed Service: Amazon DynamoDB
+   
+6. Graph DB:
+   1. Store and navigate data with complex relationships
+   2. Use case: Social Networking Data ( Facebook, Twitter ) , fraud detection
+   3. Recommended AWS Managed Service: Amazon Neptune
+   
+7. In Memory DB:
+   1. Retreving data from memory is much faster from retreving data from disk
+   2. In memory db like redis deliver micro second latency by storing persistent data in memory
+   3. Recommended AWS Managed Service: Amazon Elastic Cache
+   4. Supports Redis (persistent) and Memcache (simple cache)   
+   5. Use case: caching, session management, maps app
+
+
+Amazon RDS : Relation Database Service
+1. Supports Amazon Aurora ( MySQL and Postgres ), Postgres, MySQL (InnoDB Strorage Engine Support), MariaDB (In Enhance MySQL DB for enterprise), Oracle and SQL Server
+2. Multi AZ Deployment (standby in other AZ)
+3. Read Replica (DB Replica for read only) : We can deploy read replica either in : Same AZ, Multi AZ, Cross Region
+4. We can add storage to DB manually or we can chose for auto scale
+5. Automated backup : restore to point in time
+6. Manual Snapshot
+
+7. AWS is responsible for:
+   1. Availablity
+   2. Durablity
+   3. Scaling
+   4. Maintenance
+   5. Backups
+
+8. We are responsible for:
+   1. Managing db user : authorization
+   2. App optimization : table and indexs
+
+9. We can't do:
+   1. SSH in db EC2 instance or setup custom software (NOT Allowed)
+   2. Install OS or DB Patches, RDS takes care of them (Not Allowed)     
+   
+
+***************************************************************************************************************************************************************************************************************
+********************************************************************************************AWS Devops*********************************************************************************************************
+***************************************************************************************************************************************************************************************************************
+1. Code commit -> Unit Test -> Integration Test -> Package -> Deploy -> Automated Test -> Take Approval -> Deploy to Next Environment -> upto Prod
+
+2. Create Template -> Provision Server -> Install Software -> Configure Software -> Deploy App
+   1. Terraform :  For IaaC
+   2. Chef, Puppet & Ansible :  For deploying software to Services or Resources like install Tomcat on EC2 instance
+   
+3.    
+   
+***************************************************************************************************************************************************************************************************************
+********************************************************************************************AWS Well Architecture**********************************************************************************************
+***************************************************************************************************************************************************************************************************************
+    
+Application should be : Secure, High Performance, Resilient ( ability to adopt to load and recover from failure) & Efficient 
+
+Five Pillar are : Operational Excellence, Security, Reliablity, Performance Efficiency, Cost Optimization
+
+1. Operational Excellence
+   1. Provision Server
+   2. Deploy application
+   3. Monitoring application
+   4. Support ( identify and fix problem)
+
+   1. Use manage Service
+   2. Go Serverless
+   3. Use IaaC
+   4. Use CI/CD
+   5. Perform frequent and small releases
+   
+   1. Prepare for failure : go and kill your server & Disaster recovery exercise
+   2. Operate: gather data and metrics
+   3. Evolve: get intelligence using elastic search to analyze your logs
+
+
+2. Security : IAM, Shield, WAF, KMS, HSM
+   1. Principal of least privlage for least time
+   2. Security in depth: Apply security in all layers
+   3. Protect data in transit and at rest
+   4. Actively monitor for security issues
+   5. Centralize security policy for multiple AZ account
+
+
+   1. Principal of least privlage for least time
+     1. Use temporary credentials whenever possible ( IAM roles and Instance Profile )
+     2. Use IAM Groups to simplify IAM Management
+     3. Enforce strong password practice
+     4. Enforce MFA
+     5. Rotate credentials regularly
+   
+   2. Security in depth
+     1. Use VPC and private subnet
+     2. Use security groups ( inbound and outbound rules)
+     3. Network access control list is properly configured
+     4. Use hardend EC2 AMI : Create EC2 instance apply security patches and use that
+     5. Automate patch for OS, Software etc
+     6. Use CloudFront with AWS Sheild for DDoS attack  
+     7. Use CloudFront with AWS WAF for CSS, SQL Injection etc
+     8. Use Terraform : so that infra will adhere to security policies
+   
+   3. Protect data in transit and at rest
+     1. Enable Versioning
+     2. Enable Encryption - KMS and Cloud HSM
+     3. Rotate Encryption Keys
+     
+3. Reliablity
+   1. Ability to recover from infrastructure and application issues
+   2. Ability to changing demand in load 
+   
+   Autonatatic recovery from failure : health check and auto scaling, use managed service like RDS can automatically switch to standby
+   Scale Horizontal : reduce impact of single failure
+   Maintain Redudancy : multiple region and availablity zone
+   Prefer Serverless Architecture
+   Prefer loosly couple architecture : ELB (Elastic Load Balancer), Kinesis (handle event streams), SQS (simple queue service, polling mechanism) and SNS (simple notification service, publish subscribe)
+   Use API Gateway : for throttling requests
+   Troubleshoot from problem quickly: enable server access logs
+   
+4. Performance Efficiency
+   1. Meet need with minimum resources (efficiency)
+   2. Continue being efficient as denand and technology evolves
+   3. Use managed services
+   4. Go serverless
+   5. Monitor Performance
+
+5. Cost Optimization
+   1. Run system at lowest cost
+   2. Match supply and demand ( scale up and down)
+   3. Delete Test Resource when not required
+   4. Serverless
+   5. Track your expenditure
+   6. Use opensource
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

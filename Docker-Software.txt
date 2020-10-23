@@ -1,0 +1,20 @@
+MySQL:
+------
+docker run --detach --env MYSQL_ROOT_PASSWORD=root1234 --env MYSQL_USER=apiuser --env MYSQL_PASSWORD=apipass --env MYSQL_DATABASE=apidb --name mysql --publish 3306:3306 -v /home/rahul/work/docker-volumes/mysql/:/var/lib/mysql mysql:5.7
+
+connect with user root and pass root1234
+
+
+Sonarqube:
+---------
+docker pull sonarqube 
+docker run -d --name sonarqube -p 9000:9000 -p 9092:9092 sonarqube
+
+http://localhost:9000/
+username: admin
+password: admin
+
+mvn sonar:sonar \
+  -Dsonar.projectKey=com.crazzy.api \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.login=7a3ecca7e9e635404f83538c36ac052dc9b8a5e6

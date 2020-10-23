@@ -32,7 +32,10 @@ az webapp log tail --name todo-web-application-mysql-thecrazzyrahul --resource-g
 
 MySQL on Docker:
 Make Sure your local mysql server is not runing, stop the mysql service first as it will use the port 3306
-docker run --detach --env MYSQL_ROOT_PASSWORD=rootpwd --env MYSQL_USER=username --env MYSQL_PASSWORD=password --env MYSQL_DATABASE=trxdevdb --name mysql --publish 3306:3306 mysql:5.7
+docker run --detach --env MYSQL_ROOT_PASSWORD=root1234 --env MYSQL_USER=username --env MYSQL_PASSWORD=password --env MYSQL_DATABASE=apidb --name mysql --publish 3306:3306 mysql:latest
+
+Working Ubuntu:
+docker run --detach --env MYSQL_ROOT_PASSWORD=root1234 --env MYSQL_USER=apiuser --env MYSQL_PASSWORD=apipass --env MYSQL_DATABASE=apidb --name mysql --publish 3306:3306 -v /home/rahul/work/docker-volumes/mysql/:/var/lib/mysql mysql:5.7
 
 You can connect to MySQL IDE or MySQL Command Line Client ( provide password : dummypassword)
 
