@@ -1,0 +1,302 @@
+## kafka
+
+Download Kafka from : https://kafka.apache.org/downloads
+Unzip and cd into kafka dir
+build the project first e.g. by running: ./gradlew jar -PscalaVersion=2.13.2
+Start Zookeeper Server: bin/zookeeper-server-start.sh config/zookeeper.properties
+Start Kafka Server : bin/kafka-server-start.sh config/server.properties
+Start Kafka Consumer : bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic myTopic
+
+Kafka Series : https://courses.datacumulus.com/
+1. Kafka for Beginners
+2. Kafka Connect API
+3. Kafka Streams API
+4. Kafka Cluster Setup & Administration
+5. Confluent Components
+6. Kafka Security
+7. Kafka Monitoring & Operation
+
+## Kafka Topics
+1. Topics are particular stream of data
+2. Similar to Table in Database( without all the constraint)
+3. We can have as many topics as we want
+4. A Topic is identified by its name
+
+5. Topics are splits into Partitions
+6. Each Partition is ordered
+7. Each Message within a partition gets an incremental id, called offset
+
+example: 
+
+Kafka Topic - Partition 0 & Partition 1 & Partition 2 ...
+              Partition 0 : 0, 1, 2 ... N
+              Partition 1 : 0, 1, 2 ... N
+              Partition 2 : 0, 1, 2 ... N
+
+## Partition
+1. Offset only have a meaning for a specific partition eg offset 3 in partition 0 doesn't represent same data in offset 3 of partition 1
+2. Order is guaranteed only within a partition ( not across partition )
+3. Data is kept only for limited time ( default is one week )
+4. Once the data is written to a partition, it can't be changed ( immutability )
+5. Data is assigned randomly to a partition unless a key is provided
+ 
+## Brokers 
+1. Kafka Cluster is composed of multiple brokers
+2. Each broker is identified with its ID ( integer )
+3. Each broker contains certain topic partitions ( as its distributed )
+4. After connecting to any broker ( called bootstrap broker) you will be connected to entire cluster
+5. A good number to get started is 3 brokers, but some big clusters have over 100 brokers
+6. example broker 101, broker 102, broker 103
+
+example Topic A with 3 Partitions & Topic B with 2 Partitions
+
+Broker 101 : Topic A Partition 0, Topic B Partition 1
+Broker 102 : Topic A Partition 2, Topic B Partition 0
+Broker 103 : Topic A Partition 1
+
+## Topic Replication Factor
+1. Topics should have replication factor > 1 ( usually between 2 & 3 )
+2. This way if a broker is down another broker can serve the data
+3. Example : Topic A with 2 Partition & replication factor of 2
+
+Broker 101 : Topic A Partition 0  
+Broker 102 : Topic A Partition 0, Topic A Partition 1
+Broker 103 : Topic A Partition 1
+
+## Leader for a Partition
+1. At any time only ONE broker can be a leader for a given partition
+2. Only that leader can receive & serve data for a partition
+3. The other broker will sync the data
+4. Therefore, each partition has one leader and multiple ISR ( in-sync-replica )
+
+Broker 101 : Topic A Partition 0  (Leader) ( replication goes from Broker 101 to 102)
+Broker 102 : Topic A Partition 0 ( ISR ), Topic A Partition 1 (Leader)
+Broker 103 : Topic A Partition 1 ( ISR )
+
+Note : 
+If broker 101 goes down, then broker 102 will become a leader & once broker 101 come up it will try to become leader.
+Leader and ISR are determined by Zookeeper
+
+## Producer
+1. Producer write data to topics (which is made up of partitions)
+2. Producer automatically knows to which broker and partition to write to
+3. In case of broker failure, producer will automatically recover
+4. If no key is defined then producer will send data to each broker in round robin fashion
+
+5. Producer can choose to receive an acknowledgment of data writes:
+   a. acks = 0, producer won't wait for an acknowledgment ( possible data loss )  
+   b. acks = 1, producer will wait for leader acknowledgment ( limited data loss )
+   c. acks = all, producer will wait for a leader + replicas acknowledgment ( no data loss )
+   
+## Producer : Message Keys
+1. Producer can choose to send a key with the message (string, number, ... )
+2. If key = null, data is sent round robin ( broker 101 then 102 then 103) 
+3. If a key is sent, then all the msg for that key will go to the same partition
+3. A key is basically sent if you need message ordering for a specific field (ex: truck_id)
+4. Example Producer -> send data -> broker 101 topic-a partition 0 truck_id_123 data will always in partition 0 & truck_id_456 data will always in partition 0, 
+                                 -> broker 102 topic-a partition 1 data will always in partition 1, truck_id_789 truck_id_101112 data will always in partition 1
+
+Note: we get this guaranty thanks to key hashing
+
+## Consumers
+1. Consumer read data from topic (identified by name)
+2. Consumer know which broker to read from 
+3. In case of broker failure, consumer knows how to recover
+4. Data is read in order within each partitions
+
+Broker 101 Topic-A Partition-0 [1,2,3,4,5,...]   -> Read in order ->  Consumer 1
+
+Broker 101 Topic-A Partition-1 [1,2,3,4,5,...]   -> Read in order ->  Consumer 2
+Broker 101 Topic-A Partition-2 [1,2,3,4,5,...]   -> Read in order ->  Consumer 2
+
+Consumer can read data in parallel from 2 partition ( within each partition data read in order) but across partition data read in order is not gauranty, 
+it will read some data from partition 1 then some form partition 2   
+
+## Consumer Groups
+1. Consumer read data in consumer group
+2. Each consumer within a group read data from exclusive partitions
+3. If you have more consumer than partition, some consumer will be inactive ( this case is useful if consumer goes down then inactive one will take its place )
+
+example
+
+Topic-A Partition 0, Topic-A Partition 1, Topic-A Partition 2
+consumer-group-app-1
+Consumer 1 will read from all 3 partitions
+
+Topic-A Partition 0, Topic-A Partition 1, Topic-A Partition 2
+consumer-group-app-2
+Consumer 1 can read from partition 0 & 1
+Consumer 2 can read from partition 2
+
+Topic-A Partition 0, Topic-A Partition 1, Topic-A Partition 2
+consumer-group-app-3
+Consumer 1 can read from partition 0
+Consumer 2 can read from partition 1
+Consumer 3 can read from partition 2
+
+Topic-A Partition 0, Topic-A Partition 1, Topic-A Partition 2
+consumer-group-app-4
+Consumer 1 can read from partition 0
+Consumer 2 can read from partition 1
+Consumer 3 can read from partition 2
+Consumer 4 will be inactive
+
+Note: Consumer will automatically use the group coordinator & consumer coordinator to assign a consumer to a partition  
+
+## Consumer Offsets
+1. Kafka stores the offsets at which a consumer group has been reading
+2. The offsets committed live in kafka topic named __consumer__offsets
+3. When a consumer in a group has processed data received from kafka, it should be committing the offsets
+4. If a consumer dies, it will read back from where it left off thanks to the committed consumer offsets
+
+## Delivery Semantics for consumer
+1. Consumer will choose when to commit offsets
+2. There are 3 delivery semantics
+   a. At most once : offsets are committed as soon as the msg is received, if the processing goes wrong, the msg will be lost( it won't be read again )
+   b. At least once : usually preferred, offsets are committed after the msg is processed, if the processing goes wrong, the msg will be read again.
+      This can result in duplicate of msg, make sure your processing is idempotent.
+   c. Exactly once : Can be achieved for kafka => kafka workflows using kafka streams api. For kafka to external system, use idempotent consumer.           
+   
+Note : from google search, At most once is default
+
+## kafka Broker Discovery
+1. Every kafka broker is also called a "bootstrap server"
+2. That means you need to connect to only 1 broker, and you will be connected to whole cluster.
+3. Each broker knows about all broker, topics and partition (metadata)
+
+Kafka Client  -> Broker 101 , Broker 102 , Broker 103 , Broker 104 , Broker 105 ( Kafka CLuster)
+1. Kafka client make connection with any of the bootstrap broker
+2. Connection is established, metadata is requested.
+3. List of all brokers returned back
+4. Kafka client can connect to needed broker
+
+## Zookeeper
+1. Zookeeper manages brokers ( keeps a list of them )
+2. Zookeeper helps in performing leader election for partition
+3. Zookeeper sends notification to kafka in case of changes ( eg new topics, broker dies, broker comes up, delete topics, etc )
+4. Kafka cannot work without Zookeeper
+5. Zookeeper by design works with odd number of servers (3,5,7)
+6. Zookeeper has a leader (handle writes) & rest of the servers are followers ( handle reads )
+7. Zookeeper does not store consumer offset with kafka > v.0.10
+
+Zookeeper Server 1 : Follower ----> Kafka broker 1 & Kafka broker 2 <--- Producer & Consumer ( Producer will produce to kafka broker and consumer will consume from kafka broker )
+Zookeeper Server 2 : Leader   ----> Kafka broker 3 & Kafka broker 4   <--- Producer & Consumer
+Zookeeper Server 3 : Follower ----> Kafka broker 5 & Kafka broker 6 <--- Producer & Consumer
+
+## Kafka Guaranty
+1. Messages are appended to a topic-partition in the order they are sent
+2. Consumers read messages in the order stored in topic-partition
+3. With a replication factor of N, producer and consumer can tolerate upto N-1 broker being down
+4. This is why replication factor of 3 is a good idea
+   a. Allows for 1 broker to be taken down for maintenance
+   b. Allows for another broker to be taken down unexpectedly
+5. As long as the no of the partitions remains constant for a topic ( no new partition ), the same key will always go to the same partition     
+
+Source System ----> Producers ----> Kafka Cluster ----> Consumers ----> Target System
+                                    [Broker 101, Broker 102 ...] 
+                                       |
+                                    Zookeeper     
+                                    
+## Create Topics
+1. bin/kafka-topics.sh --bootstrap-server localhost:9092 --topic firstTopic --create --partitions 3 --replication-factor 1
+2. bin/kafka-topics.sh --bootstrap-server localhost:9092 --list                                    
+3. bin/kafka-topics.sh --bootstrap-server localhost:9092 --describe                                    
+4. bin/kafka-topics.sh --bootstrap-server localhost:9092 --delete --topic firstTopic                              
+
+## Create Producer :  Always create topics before you start producing 
+1. bin/kafka-console-producer.sh --broker-list localhost:9092 --topic firstTopic 
+2. bin/kafka-console-producer.sh --broker-list localhost:9092 --topic firstTopic --producer-property acks=all
+
+## Create Consumer
+1. bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic firstTopic (doesn't read all the message, it will read from the point it launches)
+2. bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic firstTopic --from-beginning
+3. bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic firstTopic --group my-first-app
+
+Consumer Group will start reading from beginning if specified --from-beginning and commit the offset id till the messages it read.
+Second time it will not go to read from beginning even we specify the flag.
+If consumer group is down & we have messages than when we make consumer group up again without beginning flag it will read all the messages.
+
+## Consumer Group
+1. bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
+2. bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group my-first-app ( This will show, who all are consuming your topic )
+3. bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group my-first-app --reset-offsets --to-earliest --execute --topic firstTopic ( To Reset offsets for a topic )
+4. bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group my-first-app --reset-offsets --shift-by -2 --execute --topic firstTopic ( To Reset offsets for a topic )
+
+## Producer Settings
+1. ack=all with min.sync.replica = 2 which means if we have 3 brokers then atleast 1 leader & 1 broker will send ack back.
+   This also means if more than 2 broker are down then we will get NotEnoughRepilcaException
+2. retries, default to 2147483647 no of times and retry.backoff.ms default to 100ms
+3. Producer timeout delivery.timeout.ms 120000 ms = 2min that means produder will retry max for 2 min only even though we have retries set to 2147483647 no of times
+4. max.in.flight.requests.per.connection this tells how many producer request can be made in parallel
+5. with latest version we dont meed to worry : enable.idempotence=true Producer Level & min.insync.replicas=2 Broker/Topic Level
+   a. Above will imply acks=all, retries=MAX_INT, max.in.flight.requests.per.connection=5
+   b. While keeping ordering guaranty & improving performance!
+ 
+## Message Compression
+1. Producer usually send data that is text based like jsom
+2. In this case it important to apply compression to the producer
+3. compression.type: none (default), gzip, lz4, snappy
+4. Compression is more effective the bigger the batch of message being sent to Kafka!
+
+## Batch
+1. By Default kafka tries to send record as soon as possible
+2. It will have upto 5 requests in flight, meaning upto 5 messages individually sent at the same time.
+3. After this if more messages have to be sent while other are in flight, kafka is smart and start batching them while they wait to send them all at once.
+4. This smart batching allow kafka to increase throughput while maintaining very low latency
+5. Batches have higher compression ratio so better efficiency
+
+## Linger Milli-Second & Batch Size
+1. Linger.ms : No of millisecond a producer is willing to wait before sending a batch out ( default 0 milli sec, means send as soon as we receive message)
+2. By introducing some lag like linger.ms=5, will increase the chances of sending the messages in batch
+3. So with the expense of introducing a small delay, we can increase throughput, compression & efficiency of our producer
+4. if the batch is full ( batch.size ) before the end of linger.ms period, it will be sent to kafka right away.
+
+Batch Size :
+1. batch.size: max no of size that will be included in a batch. The default is 16 KB.
+2. increasing the batch size to something like 32kb or 64 kb can help to increase the compression, throughput and efficiency of requests.
+3. any message bigger then the batch size will not be batched
+4. a batch is allocated per partition, so make sure you don't set it to a no. that's too high, otherwise you will run waste producer memory.
+5. we can monitor the average batch size metric using kafka producer metrics
+
+## Max Block Millisec & Buffer Memory
+1. If the producer will produce faster then the broker can take, the records will be buffered in memory
+2. buffer.memory=33554432 ( 32MB ), the size of the send buffer.
+3. If buffer is full 32MB then the send method will start to block 
+4. max.block.ms=60000, the time the .send() will block until throwing an exception. Exception basically thrown when
+   a. Producer filled up its buffer
+   b. Broker is not accepting any new data
+   c. 60 Second has elapsed.
+
+## Consumer Poll : Dont change below settings unless you feel there is a requirement
+Consumer ---- poll ----> Broker ----> return data 
+1. fetch.min.bytes : controls how much data you want to pull at least on each request, default 1
+2. Max.poll.records : controls how many records to receive per poll request, default 500
+3. Max.partitions.fetch.bytes : Max data return by the broker per partition, default 1MB
+4. Fetch.max.bytes : Max data return from each fetch request ( cover multiple partition ), default 50 MB
+
+## Consumer offset commit strategies 
+1. easy : enable.auto.commit = true & synchronous processing of batches
+2. medium : enable.auto.commit = false & manual commit of offsets
+
+consumer will commit offsets every 5 sec by default to kafka broker topic
+
+best way : 
+enable.auto.commit = false & synchronous processing of batches
+accumulating records into a  buffer & then flush the buffer to a database/elasticsearch then commit the offset 
+
+// Disable auto commit of offsets
+config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG , "false");
+
+once done with processing : consumer.commitSync() ,this is commit offsets manually
+
+# Kafka Connect & Streams
+Source System --> Kafka Connect --> Kafka Brokers (Topics) ----> Kafka Streams ( ETL Process where we can filter/change/enhance the data) ---> Kafka Brokers (Topics) -----> Kafka Connect -----> Sink System
+
+## Kafka Data Deletion Policy
+1.log.retention.hours=168 ( 1 week ) & log.retention.bytes=-1 (infinite) by default
+2.Broker has Topic, Topic has Partition, Partition has Segments, old segment deleted once 1 week old and data is written to new segment.
+ 
+
+
+  
+
